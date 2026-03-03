@@ -1,0 +1,147 @@
+{
+  "projectType": "sdk-library",
+  "projectName": "HeartMAP",
+  "projectDescription": "A comprehensive Python package for single-cell heart analysis with chamber-specific insights and cell-cell communication networks.",
+  "theme": "palm",
+  "primaryColor": "#E63946",
+  "lightColor": "#F1FAEE",
+  "darkColor": "#1D3557",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/overview",
+              "concepts/pipelines",
+              "concepts/chamber-analysis",
+              "concepts/cell-communication",
+              "concepts/configuration"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/basic-analysis",
+              "guides/communication-analysis",
+              "guides/multi-chamber-analysis",
+              "guides/comprehensive-pipeline",
+              "guides/visualization",
+              "guides/cli-usage",
+              "guides/api-usage"
+            ]
+          },
+          {
+            "group": "Examples",
+            "pages": [
+              "examples/quick-analysis",
+              "examples/python-api",
+              "examples/custom-pipelines",
+              "examples/advanced-workflows"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Pipelines",
+            "pages": [
+              "api/pipelines/basic-pipeline",
+              "api/pipelines/advanced-communication-pipeline",
+              "api/pipelines/multi-chamber-pipeline",
+              "api/pipelines/comprehensive-pipeline"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "api/config/config",
+              "api/config/data-config",
+              "api/config/analysis-config",
+              "api/config/model-config"
+            ]
+          },
+          {
+            "group": "Data Processing",
+            "pages": [
+              "api/data/data-processor",
+              "api/data/lr-database"
+            ]
+          },
+          {
+            "group": "Utilities",
+            "pages": [
+              "api/utils/visualizer",
+              "api/utils/results-exporter"
+            ]
+          },
+          {
+            "group": "REST API",
+            "pages": [
+              "api/rest/overview",
+              "api/rest/endpoints",
+              "api/rest/authentication"
+            ]
+          },
+          {
+            "group": "CLI",
+            "pages": [
+              "api/cli/commands",
+              "api/cli/options"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Resources",
+        "groups": [
+          {
+            "group": "Additional Resources",
+            "pages": [
+              "resources/scientific-background",
+              "resources/datasets",
+              "resources/troubleshooting",
+              "resources/faq",
+              "resources/changelog",
+              "resources/contributing"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Chamber-specific cardiac analysis across all four heart chambers",
+    "Cell-cell communication network inference using ligand-receptor databases",
+    "Multiple analysis pipelines (Basic, Communication, Multi-Chamber, Comprehensive)",
+    "CLI and REST API interfaces for flexible integration",
+    "Memory-optimized processing for large single-cell datasets",
+    "Production-ready with extensive validation on human heart data"
+  ],
+  "publicApiSurface": [
+    "BasicPipeline",
+    "AdvancedCommunicationPipeline",
+    "MultiChamberPipeline",
+    "ComprehensivePipeline",
+    "Config",
+    "DataProcessor",
+    "Visualizer",
+    "ResultsExporter",
+    "HeartMapAPI",
+    "CLIInterface",
+    "get_ligand_receptor_pairs",
+    "LigandReceptorDatabase"
+  ]
+}
