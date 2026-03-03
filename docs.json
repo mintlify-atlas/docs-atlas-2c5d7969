@@ -70,6 +70,7 @@
           {
             "group": "Pipelines",
             "pages": [
+              "api/pipelines/base-pipeline",
               "api/pipelines/basic-pipeline",
               "api/pipelines/advanced-communication-pipeline",
               "api/pipelines/multi-chamber-pipeline",

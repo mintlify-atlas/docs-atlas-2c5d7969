@@ -33,26 +33,17 @@ print(f"Loaded: {adata.n_obs} cells × {adata.n_vars} genes")
 ### Running Complete Analysis
 
 ```python
-from heartmap import HeartMapModel
+from heartmap.pipelines import ComprehensivePipeline
 
-# Option A: Full HeartMAP model
-model = HeartMapModel(config)
-results = model.analyze('heart_data.h5ad')
+# Run comprehensive analysis pipeline
+pipeline = ComprehensivePipeline(config)
+results = pipeline.run('heart_data.h5ad', 'results/')
 
 # Access results
 adata = results['adata']  # Processed AnnData object
-cluster_labels = results['results']['annotation']['cluster_labels']
-
-# Save model for reuse
-model.save('models/my_heartmap_model')
-```
-
-```python
-# Option B: Specific pipeline
-from heartmap.pipelines import ComprehensivePipeline
-
-pipeline = ComprehensivePipeline(config)
-results = pipeline.run('heart_data.h5ad', 'results/')
+annotation_results = results['results']['annotation']
+communication_results = results['results']['communication']
+chamber_results = results['results']['multi_chamber']
 
 print("✓ Analysis complete!")
 ```
@@ -378,20 +369,20 @@ for filename, output_dir in results:
 ## Error Handling
 
 ```python
-from heartmap import Config, HeartMapModel
-from heartmap.exceptions import DataProcessingError
+from heartmap import Config
+from heartmap.pipelines import ComprehensivePipeline
 
 try:
     config = Config.from_yaml('config.yaml')
-    model = HeartMapModel(config)
-    results = model.analyze('data.h5ad')
+    pipeline = ComprehensivePipeline(config)
+    results = pipeline.run('data.h5ad', 'output/')
     
 except FileNotFoundError as e:
     print(f"Data file not found: {e}")
     
-except DataProcessingError as e:
-    print(f"Error during data processing: {e}")
-    print("Try reducing max_cells_subset or max_genes_subset")
+except ImportError as e:
+    print(f"Missing dependency: {e}")
+    print("Install with: pip install heartmap[all]")
     
 except MemoryError:
     print("Out of memory!")

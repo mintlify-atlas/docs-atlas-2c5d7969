@@ -1,0 +1,178 @@
+---
+title: BasePipeline
+description: Abstract base class for all HeartMAP analysis pipelines
+---
+
+# BasePipeline
+
+The `BasePipeline` class is an abstract base class that provides the foundation for all HeartMAP analysis pipelines. It defines the common interface and shared functionality that all pipeline implementations must follow.
+
+## Class Overview
+
+`BasePipeline` is an abstract class from Python's `abc` module that cannot be instantiated directly. Instead, you should use one of its concrete implementations:
+
+- [BasicPipeline](/api/pipelines/basic-pipeline) - Basic single-cell analysis
+- [AdvancedCommunicationPipeline](/api/pipelines/advanced-communication-pipeline) - Cell-cell communication analysis
+- [MultiChamberPipeline](/api/pipelines/multi-chamber-pipeline) - Chamber-specific analysis
+- [ComprehensivePipeline](/api/pipelines/comprehensive-pipeline) - Complete HeartMAP analysis
+
+## Import
+
+```python
+from heartmap.pipelines import BasePipeline
+```
+
+## Constructor
+
+### `__init__(config: Config)`
+
+Initialize a pipeline with the given configuration.
+
+<ParamField path="config" type="Config" required>
+  HeartMAP configuration object containing data, analysis, and model settings
+</ParamField>
+
+## Attributes
+
+All pipelines inheriting from `BasePipeline` have the following attributes:
+
+<ResponseField name="config" type="Config">
+  Configuration object passed during initialization
+</ResponseField>
+
+<ResponseField name="data_processor" type="DataProcessor">
+  Data processor instance for loading and preprocessing data
+</ResponseField>
+
+<ResponseField name="visualizer" type="Visualizer">
+  Visualizer instance for creating plots and figures
+</ResponseField>
+
+<ResponseField name="exporter" type="ResultsExporter">
+  Results exporter instance for saving analysis outputs
+</ResponseField>
+
+<ResponseField name="results" type="Dict[str, Any]">
+  Dictionary storing pipeline results after execution
+</ResponseField>
+
+## Abstract Methods
+
+### `run(data_path: str, output_dir: Optional[str] = None) -> Dict[str, Any]`
+
+Run the complete analysis pipeline. This method must be implemented by all concrete pipeline classes.
+
+<ParamField path="data_path" type="str" required>
+  Path to input data file (typically `.h5ad` format)
+</ParamField>
+
+<ParamField path="output_dir" type="Optional[str]">
+  Directory to save output files. If `None`, results are not saved to disk.
+</ParamField>
+
+**Returns:** `Dict[str, Any]`
+
+Dictionary containing analysis results. The structure depends on the specific pipeline implementation.
+
+## Methods
+
+### `save_results(output_dir: str) -> None`
+
+Save pipeline results to the specified directory.
+
+<ParamField path="output_dir" type="str" required>
+  Directory path where results will be saved
+</ParamField>
+
+This method:
+1. Creates the output directory if it doesn't exist
+2. Uses the `ResultsExporter` to save analysis results
+3. Exports results in various formats (JSON, CSV, plots)
+
+## Creating Custom Pipelines
+
+To create a custom pipeline, inherit from `BasePipeline` and implement the `run` method:
+
+```python
+from heartmap.pipelines import BasePipeline
+from heartmap import Config
+from typing import Dict, Any, Optional
+
+class CustomPipeline(BasePipeline):
+    """Custom analysis pipeline"""
+    
+    def __init__(self, config: Config):
+        super().__init__(config)
+        # Add custom initialization here
+    
+    def run(self, data_path: str, output_dir: Optional[str] = None) -> Dict[str, Any]:
+        """Run custom analysis"""
+        print("=== Running Custom Pipeline ===")
+        
+        # 1. Load and preprocess data
+        adata = self.data_processor.process_from_raw(data_path)
+        
+        # 2. Perform custom analysis
+        # Your analysis code here
+        
+        # 3. Generate visualizations
+        if output_dir:
+            viz_dir = Path(output_dir) / "figures"
+            viz_dir.mkdir(parents=True, exist_ok=True)
+            # Create custom plots
+        
+        # 4. Store results
+        self.results = {
+            'adata': adata,
+            'results': {
+                # Your results here
+            }
+        }
+        
+        # 5. Save results
+        if output_dir:
+            self.save_results(output_dir)
+        
+        return self.results
+```
+
+## Example Usage
+
+Since `BasePipeline` is abstract, you'll typically work with concrete implementations:
+
+```python
+from heartmap import Config
+from heartmap.pipelines import BasicPipeline
+
+# Create configuration
+config = Config.default()
+
+# Use a concrete pipeline implementation
+pipeline = BasicPipeline(config)
+
+# Run analysis
+results = pipeline.run('data.h5ad', 'output/')
+```
+
+## Related Documentation
+
+<CardGroup cols={2}>
+  <Card title="BasicPipeline" icon="flask" href="/api/pipelines/basic-pipeline">
+    Basic single-cell analysis pipeline
+  </Card>
+  <Card title="AdvancedCommunicationPipeline" icon="network-wired" href="/api/pipelines/advanced-communication-pipeline">
+    Cell-cell communication analysis
+  </Card>
+  <Card title="MultiChamberPipeline" icon="heart" href="/api/pipelines/multi-chamber-pipeline">
+    Chamber-specific analysis
+  </Card>
+  <Card title="ComprehensivePipeline" icon="layer-group" href="/api/pipelines/comprehensive-pipeline">
+    Complete HeartMAP analysis
+  </Card>
+</CardGroup>
+
+## See Also
+
+- [Custom Pipelines Guide](/examples/custom-pipelines) - Learn how to create custom analysis pipelines
+- [Config API Reference](/api/config/config) - Configuration options
+- [DataProcessor API Reference](/api/data/data-processor) - Data processing utilities
