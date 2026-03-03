@@ -1,0 +1,367 @@
+---
+title: "ModelConfig"
+description: "Model configuration for HeartMAP"
+---
+
+The `ModelConfig` class defines configuration parameters for model execution, computational resources, and output management in HeartMAP.
+
+## Class Definition
+
+```python
+from heartmap.config import ModelConfig
+```
+
+## Constructor
+
+```python
+ModelConfig(
+    model_type="comprehensive",
+    save_intermediate=True,
+    use_gpu=False,
+    batch_size=None,
+    max_memory_gb=None
+)
+```
+
+## Configuration Fields
+
+### model_type
+
+<ParamField path="model_type" type="str" default="comprehensive">
+  Type of analysis workflow to run. Options:
+  - `"comprehensive"`: Full analysis pipeline including all preprocessing, clustering, marker identification, and cell-cell communication
+  - `"basic"`: Basic analysis without advanced features like LIANA communication analysis
+  - `"custom"`: User-defined workflow (requires additional configuration)
+</ParamField>
+
+**Example:**
+```python
+from heartmap.config import ModelConfig
+
+config = ModelConfig(model_type="comprehensive")
+# Run full analysis pipeline
+
+config = ModelConfig(model_type="basic")
+# Run basic analysis only
+```
+
+### save_intermediate
+
+<ParamField path="save_intermediate" type="bool" default="true">
+  Whether to save intermediate results during the analysis pipeline. When `true`, saves processed data, PCA results, and intermediate AnnData objects. Useful for debugging and resuming interrupted analyses. When `false`, only saves final results to reduce disk usage.
+</ParamField>
+
+**Example:**
+```python
+config = ModelConfig(save_intermediate=True)
+# Save all intermediate results
+
+config = ModelConfig(save_intermediate=False)
+# Only save final results (saves disk space)
+```
+
+### use_gpu
+
+<ParamField path="use_gpu" type="bool" default="false">
+  Whether to use GPU acceleration for computations. When `true`, uses GPU for compatible operations (requires CUDA-enabled GPU and appropriate drivers). Significantly speeds up large dataset analysis. When `false`, uses CPU only.
+</ParamField>
+
+**Example:**
+```python
+config = ModelConfig(use_gpu=True)
+# Enable GPU acceleration
+
+config = ModelConfig(use_gpu=False)
+# Use CPU only
+```
+
+### batch_size
+
+<ParamField path="batch_size" type="Optional[int]" default="null">
+  Batch size for processing operations. If set, processes data in batches of this size. Useful for controlling memory usage with large datasets. If `null`, processes all data at once (optimal for small/medium datasets).
+</ParamField>
+
+**Example:**
+```python
+config = ModelConfig(batch_size=5000)
+# Process data in batches of 5,000 cells
+
+config = ModelConfig(batch_size=None)
+# Process all data at once
+```
+
+### max_memory_gb
+
+<ParamField path="max_memory_gb" type="Optional[float]" default="null">
+  Maximum memory usage in gigabytes. If set, the pipeline will attempt to limit memory consumption to this value by adjusting batch sizes and using memory-efficient operations. If `null`, no memory limit is enforced.
+</ParamField>
+
+**Example:**
+```python
+config = ModelConfig(max_memory_gb=16.0)
+# Limit memory usage to 16 GB
+
+config = ModelConfig(max_memory_gb=None)
+# No memory limit
+```
+
+## Usage Examples
+
+### Default Configuration
+
+```python
+from heartmap.config import ModelConfig
+
+# Create with default values
+config = ModelConfig()
+print(config.model_type)  # "comprehensive"
+print(config.save_intermediate)  # True
+print(config.use_gpu)  # False
+```
+
+### Custom Configuration
+
+```python
+from heartmap.config import ModelConfig
+
+# Create with custom values
+config = ModelConfig(
+    model_type="comprehensive",
+    save_intermediate=True,
+    use_gpu=True,
+    batch_size=5000,
+    max_memory_gb=32.0
+)
+```
+
+### GPU-Accelerated Analysis
+
+```python
+from heartmap.config import ModelConfig
+
+# Configure for GPU acceleration
+config = ModelConfig(
+    model_type="comprehensive",
+    use_gpu=True,
+    save_intermediate=True
+)
+```
+
+### Memory-Constrained Analysis
+
+```python
+from heartmap.config import ModelConfig
+
+# Configure for limited memory (e.g., 16 GB RAM)
+config = ModelConfig(
+    model_type="comprehensive",
+    save_intermediate=False,  # Reduce disk I/O
+    batch_size=3000,          # Process in small batches
+    max_memory_gb=12.0        # Leave headroom for OS
+)
+```
+
+### Large Dataset Analysis
+
+```python
+from heartmap.config import ModelConfig
+
+# Configure for large datasets with ample resources
+config = ModelConfig(
+    model_type="comprehensive",
+    save_intermediate=True,
+    use_gpu=True,            # Use GPU if available
+    batch_size=10000,        # Larger batches
+    max_memory_gb=64.0       # High memory limit
+)
+```
+
+### Production Analysis
+
+```python
+from heartmap.config import ModelConfig
+
+# Configure for production with resource limits
+config = ModelConfig(
+    model_type="comprehensive",
+    save_intermediate=False,  # Save disk space
+    use_gpu=False,           # CPU for reproducibility
+    batch_size=5000,
+    max_memory_gb=30.0
+)
+```
+
+### Quick Testing
+
+```python
+from heartmap.config import ModelConfig
+
+# Configure for fast testing
+config = ModelConfig(
+    model_type="basic",       # Skip advanced analyses
+    save_intermediate=False,  # Don't save intermediate files
+    use_gpu=False,
+    batch_size=None           # Process all at once
+)
+```
+
+### Using with Main Config
+
+```python
+from heartmap.config import Config, ModelConfig
+
+# Create custom model config
+model_config = ModelConfig(
+    model_type="comprehensive",
+    use_gpu=True,
+    max_memory_gb=32.0
+)
+
+# Use with main config
+config = Config.default()
+config.model = model_config
+
+# Or create from dictionary
+config = Config.from_dict({
+    'model': {
+        'model_type': 'comprehensive',
+        'use_gpu': True,
+        'max_memory_gb': 32.0
+    }
+})
+```
+
+### Loading from YAML
+
+```yaml
+# config.yaml
+model:
+  model_type: "comprehensive"
+  save_intermediate: true
+  use_gpu: true
+  batch_size: 5000
+  max_memory_gb: 32.0
+```
+
+```python
+from heartmap.config import Config
+
+config = Config.from_yaml('config.yaml')
+print(config.model.use_gpu)  # True
+print(config.model.max_memory_gb)  # 32.0
+```
+
+## Best Practices
+
+### Model Type Selection
+
+- **comprehensive**: Use for full publication-quality analysis
+  - Includes all preprocessing, clustering, markers, and communication
+  - Recommended for most use cases
+- **basic**: Use for quick exploratory analysis
+  - Skips time-consuming steps like LIANA
+  - Good for initial data quality checks
+- **custom**: Reserved for advanced users with specific workflows
+
+### Intermediate Results
+
+- **save_intermediate=true**: Recommended when:
+  - Developing or debugging pipelines
+  - Running long analyses that might be interrupted
+  - Need to inspect intermediate steps
+  - Disk space is not a concern
+- **save_intermediate=false**: Use when:
+  - Running production analyses with known good parameters
+  - Disk space is limited
+  - Only final results are needed
+
+### GPU Usage
+
+- **use_gpu=true**: Recommended when:
+  - CUDA-enabled GPU is available
+  - Dataset has > 50k cells
+  - Running multiple analyses
+  - Speed is critical
+- **use_gpu=false**: Use when:
+  - No GPU available
+  - Dataset is small (< 10k cells)
+  - Reproducibility is critical (GPU results may have minor numerical differences)
+
+### Batch Processing
+
+- **batch_size=None**: Use for small/medium datasets (< 50k cells) with sufficient memory
+- **batch_size=3000-5000**: Use for large datasets or memory-constrained systems
+- **batch_size=10000+**: Use for very large datasets with ample memory
+
+### Memory Management
+
+- **max_memory_gb**: Set to 70-80% of available RAM
+  - 16 GB RAM → max_memory_gb=12.0
+  - 32 GB RAM → max_memory_gb=24.0
+  - 64 GB RAM → max_memory_gb=48.0
+- Combine with batch_size for fine-grained control
+- Set save_intermediate=false to reduce memory pressure
+
+## Common Configurations
+
+### Laptop/Desktop (16 GB RAM, No GPU)
+
+```python
+config = ModelConfig(
+    model_type="comprehensive",
+    save_intermediate=False,
+    use_gpu=False,
+    batch_size=3000,
+    max_memory_gb=12.0
+)
+```
+
+### Workstation (64 GB RAM, GPU)
+
+```python
+config = ModelConfig(
+    model_type="comprehensive",
+    save_intermediate=True,
+    use_gpu=True,
+    batch_size=10000,
+    max_memory_gb=48.0
+)
+```
+
+### HPC Cluster (128 GB RAM, GPU)
+
+```python
+config = ModelConfig(
+    model_type="comprehensive",
+    save_intermediate=True,
+    use_gpu=True,
+    batch_size=20000,
+    max_memory_gb=96.0
+)
+```
+
+### Cloud Instance (32 GB RAM, GPU)
+
+```python
+config = ModelConfig(
+    model_type="comprehensive",
+    save_intermediate=False,  # Reduce storage costs
+    use_gpu=True,
+    batch_size=5000,
+    max_memory_gb=24.0
+)
+```
+
+## Performance Tips
+
+1. **Enable GPU** when available for 2-5x speedup on large datasets
+2. **Disable intermediate saves** in production to reduce I/O overhead
+3. **Use appropriate batch size** to balance memory usage and performance
+4. **Set memory limit** to prevent out-of-memory errors
+5. **Use basic model_type** for initial data exploration, then switch to comprehensive
+
+## See Also
+
+- [Config](/api/config/config) - Main configuration class
+- [DataConfig](/api/config/data-config) - Data processing configuration
+- [AnalysisConfig](/api/config/analysis-config) - Analysis configuration

@@ -1,0 +1,211 @@
+---
+title: 'ComprehensivePipeline'
+description: 'Comprehensive HeartMAP analysis pipeline combining all analysis modules'
+---
+
+## Overview
+
+The `ComprehensivePipeline` class provides an end-to-end analysis workflow that combines basic clustering, communication analysis, and multi-chamber analysis into a single unified pipeline. This is the recommended pipeline for complete cardiac tissue characterization.
+
+**Inheritance:** `BasePipeline`
+
+**Source:** `heartmap.pipelines.ComprehensivePipeline` (src/heartmap/pipelines/__init__.py:370)
+
+## Constructor
+
+```python
+ComprehensivePipeline(config: Config)
+```
+
+<ParamField path="config" type="Config" required>
+  Configuration object containing all analysis parameters including resolution for clustering.
+</ParamField>
+
+### Attributes
+
+Inherited from `BasePipeline`:
+- `config` (Config): Configuration object
+- `data_processor` (DataProcessor): Data processing handler
+- `visualizer` (Visualizer): Visualization handler
+- `exporter` (ResultsExporter): Results export handler
+- `results` (Dict[str, Any]): Dictionary storing pipeline results
+
+## Methods
+
+### run()
+
+Run the comprehensive HeartMAP analysis pipeline from raw data to final results.
+
+```python
+def run(data_path: str, output_dir: Optional[str] = None) -> Dict[str, Any]
+```
+
+<ParamField path="data_path" type="str" required>
+  Path to raw single-cell data file (10X format or similar).
+</ParamField>
+
+<ParamField path="output_dir" type="Optional[str]">
+  Directory to save all results, visualizations, and comprehensive report. If None, results are returned but not saved.
+</ParamField>
+
+<ResponseField name="return" type="Dict[str, Any]">
+  Dictionary containing comprehensive pipeline results:
+  
+  <ResponseField name="adata" type="AnnData">
+    Fully annotated data object with all analysis results stored in `.obs`, `.obsm`, and `.uns`
+  </ResponseField>
+  
+  <ResponseField name="results" type="Dict[str, Any]">
+    Comprehensive analysis results organized by module
+    
+    <ResponseField name="annotation" type="Dict[str, Any]">
+      Cell type annotation results
+      
+      <ResponseField name="cluster_labels" type="np.ndarray">
+        Array of cluster assignments for each cell (from Leiden clustering)
+      </ResponseField>
+    </ResponseField>
+    
+    <ResponseField name="communication" type="Dict[str, Any]">
+      Cell-cell communication analysis results
+      
+      <ResponseField name="hub_scores" type="pd.Series">
+        Hub scores for each cell (index matches adata.obs.index)
+      </ResponseField>
+    </ResponseField>
+    
+    <ResponseField name="multi_chamber" type="Dict[str, Any]">
+      Multi-chamber analysis results (chamber markers, correlations, etc.)
+    </ResponseField>
+  </ResponseField>
+</ResponseField>
+
+**Raises:**
+- `ImportError`: If required dependencies (scanpy, pandas, numpy, matplotlib) are not available
+
+**Pipeline Steps:**
+
+1. **Data Loading and Processing** - Loads and preprocesses raw data using `DataProcessor.process_from_raw()`
+2. **Neighborhood Graph** - Computes PCA (40 components) and k-nearest neighbors (k=15)
+3. **Dimensionality Reduction** - Calculates UMAP for visualization
+4. **Cell Clustering** - Performs Leiden clustering using the resolution from config
+5. **Communication Analysis** - Calculates hub scores and communication patterns
+6. **Multi-Chamber Analysis** - Identifies chamber-specific patterns
+7. **Comprehensive Visualization** - Generates integrated dashboard with all visualizations
+8. **Report Generation** - Creates comprehensive HTML/PDF report with all findings
+
+### save_results()
+
+Inherited from `BasePipeline`. Save pipeline results to disk.
+
+```python
+def save_results(output_dir: str) -> None
+```
+
+<ParamField path="output_dir" type="str" required>
+  Directory path where results will be saved
+</ParamField>
+
+## Usage Example
+
+```python
+from heartmap.config import Config
+from heartmap.pipelines import ComprehensivePipeline
+
+# Create configuration with all parameters
+config = Config(
+    data_path="data/cardiac_tissue.h5ad",
+    analysis={
+        "resolution": 0.8,
+        "n_neighbors": 15,
+        "n_pcs": 40
+    }
+)
+
+# Initialize comprehensive pipeline
+pipeline = ComprehensivePipeline(config)
+
+# Run complete analysis from raw data
+results = pipeline.run(
+    data_path="data/raw/cardiac_10x",
+    output_dir="results/comprehensive"
+)
+
+# Access all results
+adata = results['adata']
+
+# Cell type annotations
+cluster_labels = results['results']['annotation']['cluster_labels']
+print(f"Identified {len(set(cluster_labels))} cell clusters")
+
+# Communication analysis
+hub_scores = results['results']['communication']['hub_scores']
+print(f"Mean hub score: {hub_scores.mean():.3f}")
+
+# Multi-chamber results
+multi_chamber = results['results']['multi_chamber']
+print(f"Multi-chamber analysis: {list(multi_chamber.keys())}")
+
+# The AnnData object contains all annotations
+print(f"\nadata.obs columns: {list(adata.obs.columns)}")
+print(f"adata.obsm keys: {list(adata.obsm.keys())}")
+```
+
+## Output Files
+
+When `output_dir` is specified, the pipeline generates:
+
+### Data Files
+- `heartmap_complete.h5ad` - Fully annotated AnnData object with all results
+- Results exported via `ResultsExporter`
+
+### Visualizations
+- `figures/comprehensive_dashboard.png` - Integrated multi-panel dashboard
+- `figures/umap_clusters.png` - UMAP colored by cluster
+- `figures/qc_*.png` - Quality control metrics
+- `figures/communication_*.png` - Communication analysis plots
+- `figures/chamber_*.png` - Multi-chamber analysis plots
+
+### Reports
+- Comprehensive HTML/PDF report generated by `ResultsExporter.generate_comprehensive_report()`
+
+## Comparison with Other Pipelines
+
+| Feature | BasicPipeline | AdvancedCommunicationPipeline | MultiChamberPipeline | ComprehensivePipeline |
+|---------|--------------|-------------------------------|----------------------|----------------------|
+| Input | Raw data | Annotated data | H5AD file | Raw data |
+| Clustering | ✓ | - | - | ✓ |
+| Communication | - | ✓ | - | ✓ |
+| Multi-chamber | - | - | ✓ | ✓ |
+| Dashboard | - | - | - | ✓ |
+| Report | - | - | - | ✓ |
+
+## Best Practices
+
+1. **Use for complete analysis**: The `ComprehensivePipeline` is ideal when you want all analyses in one workflow
+2. **Check output_dir size**: Comprehensive analysis generates many files; ensure adequate disk space
+3. **Review configuration**: All config parameters affect the comprehensive analysis
+4. **Inspect the dashboard**: The comprehensive dashboard provides an overview of all results
+5. **Read the report**: The generated report summarizes all findings with interpretations
+
+## Related Documentation
+
+<Card title="BasicPipeline" icon="play" href="/api/pipelines/basic-pipeline">
+  Basic clustering component of comprehensive analysis
+</Card>
+
+<Card title="AdvancedCommunicationPipeline" icon="network-wired" href="/api/pipelines/advanced-communication-pipeline">
+  Communication analysis component
+</Card>
+
+<Card title="MultiChamberPipeline" icon="heart" href="/api/pipelines/multi-chamber-pipeline">
+  Multi-chamber analysis component
+</Card>
+
+<Card title="Config" icon="gear" href="/api/config">
+  Configuration object reference
+</Card>
+
+<Card title="Complete Analysis Guide" icon="book" href="/guides/comprehensive-analysis">
+  Detailed guide on running comprehensive analysis
+</Card>

@@ -1,0 +1,532 @@
+---
+title: 'Command-Line Interface (CLI)'
+description: 'Complete guide to using HeartMAP from the command line'
+---
+
+# HeartMAP CLI Usage
+
+HeartMAP provides a command-line interface for running analyses without writing Python code.
+
+## Installation
+
+```bash
+pip install heartmap
+
+# Verify installation
+heartmap --version
+```
+
+## Basic Usage
+
+### Quick Analysis
+
+```bash
+# Run with defaults (comprehensive pipeline)
+heartmap your_data.h5ad
+
+# Specify output directory
+heartmap your_data.h5ad --output-dir results/my_analysis
+```
+
+### Choose Analysis Type
+
+```bash
+# Basic analysis (QC, clustering, annotation)
+heartmap data.h5ad --analysis-type basic
+
+# Communication analysis
+heartmap annotated_data.h5ad --analysis-type advanced
+
+# Multi-chamber analysis
+heartmap chamber_data.h5ad --analysis-type multi_chamber
+
+# Comprehensive (all analyses)
+heartmap data.h5ad --analysis-type comprehensive
+```
+
+## Complete CLI Reference
+
+### Command Structure
+
+```bash
+heartmap DATA_PATH [OPTIONS]
+```
+
+### Required Arguments
+
+<ParamField path="data_path" type="string" required>
+  Path to input single-cell data file
+  
+  **Supported formats:**
+  - AnnData: `.h5ad`
+  - 10X Genomics: `.h5`
+  - Matrix Market: `.mtx` (with companion files)
+  - Loom: `.loom`
+</ParamField>
+
+### Optional Arguments
+
+<ParamField path="--analysis-type" type="string" default="comprehensive">
+  Type of analysis to perform
+  
+  **Choices:**
+  - `basic` - QC, clustering, annotation
+  - `advanced` - Cell-cell communication
+  - `multi_chamber` - Chamber-specific analysis
+  - `comprehensive` - Complete pipeline
+</ParamField>
+
+<ParamField path="--output-dir" type="string" default="results">
+  Directory to save results
+</ParamField>
+
+<ParamField path="--config" type="string">
+  Path to custom configuration YAML file
+  
+  Example:
+  ```bash
+  heartmap data.h5ad --config my_config.yaml
+  ```
+</ParamField>
+
+## Examples
+
+### Example 1: Basic Analysis
+
+Perform standard QC, clustering, and annotation:
+
+```bash
+heartmap heart_data.h5ad \
+  --analysis-type basic \
+  --output-dir results/basic_analysis
+```
+
+**Output:**
+- `results/basic_analysis/annotated_data.h5ad` - Processed data
+- `results/basic_analysis/figures/` - UMAP plots, QC metrics
+- `results/basic_analysis/tables/` - Marker genes
+
+### Example 2: Communication Analysis
+
+Analyze cell-cell communication from annotated data:
+
+```bash
+heartmap results/basic/annotated_data.h5ad \
+  --analysis-type advanced \
+  --output-dir results/communication
+```
+
+**Output:**
+- Communication heatmaps
+- Hub score visualizations
+- L-R interaction tables
+
+### Example 3: Multi-Chamber Analysis
+
+Analyze chamber-specific patterns:
+
+```bash
+heartmap chamber_annotated_data.h5ad \
+  --analysis-type multi_chamber \
+  --output-dir results/multi_chamber
+```
+
+**Requires:** Input data must have `chamber` column in `adata.obs`
+
+### Example 4: Comprehensive Analysis
+
+Run complete HeartMAP pipeline:
+
+```bash
+heartmap raw_heart_data.h5ad \
+  --analysis-type comprehensive \
+  --output-dir results/comprehensive \
+  --config configs/high_memory.yaml
+```
+
+**Output:**
+- All analysis components
+- Comprehensive dashboard
+- Automated report
+
+### Example 5: Custom Configuration
+
+Create a custom config file `my_config.yaml`:
+
+```yaml
+data:
+  min_genes: 200
+  min_cells: 3
+  max_cells_subset: 30000
+  n_top_genes: 2000
+
+analysis:
+  resolution: 0.5
+  n_neighbors: 10
+  n_pcs: 40
+  use_liana: true
+
+model:
+  save_intermediate: true
+```
+
+Run with custom config:
+
+```bash
+heartmap data.h5ad \
+  --config my_config.yaml \
+  --output-dir results/custom
+```
+
+## Configuration Files
+
+### Default Configuration
+
+View default configuration:
+
+```python
+from heartmap import Config
+config = Config.default()
+print(config.to_yaml())
+```
+
+### Configuration Structure
+
+```yaml
+# Data processing parameters
+data:
+  min_genes: 200              # Min genes per cell
+  min_cells: 3                # Min cells per gene
+  max_cells_subset: 50000     # Max cells (memory limit)
+  max_genes_subset: 5000      # Max genes
+  target_sum: 10000.0         # Normalization target
+  n_top_genes: 2000           # Highly variable genes
+  random_seed: 42             # For reproducibility
+  test_mode: false            # Quick test run
+
+# Analysis parameters
+analysis:
+  n_components_pca: 50        # PCA components
+  n_neighbors: 10             # Neighbors for graph
+  n_pcs: 40                   # PCs for neighbors
+  resolution: 0.5             # Clustering resolution
+  n_marker_genes: 25          # Markers per cluster
+  use_leiden: true            # Use Leiden clustering
+  use_liana: true             # Use L-R database
+
+# Model parameters
+model:
+  model_type: comprehensive
+  save_intermediate: true
+  use_gpu: false
+  batch_size: null
+  max_memory_gb: null
+
+# Output paths (relative to working directory)
+paths:
+  data_dir: data
+  raw_data_dir: data/raw
+  processed_data_dir: data/processed
+  results_dir: results
+  figures_dir: figures
+  models_dir: models
+```
+
+### Memory-Optimized Configs
+
+<Tabs>
+  <Tab title="Low Memory (8GB)">
+    ```yaml
+    data:
+      max_cells_subset: 10000
+      max_genes_subset: 2000
+      n_top_genes: 1500
+    
+    analysis:
+      n_components_pca: 30
+      n_pcs: 30
+    ```
+  </Tab>
+  
+  <Tab title="Medium (16GB)">
+    ```yaml
+    data:
+      max_cells_subset: 30000
+      max_genes_subset: 4000
+      n_top_genes: 2000
+    
+    analysis:
+      n_components_pca: 40
+      n_pcs: 40
+    ```
+  </Tab>
+  
+  <Tab title="High (32GB+)">
+    ```yaml
+    data:
+      max_cells_subset: 50000
+      max_genes_subset: 5000
+      n_top_genes: 3000
+    
+    analysis:
+      n_components_pca: 50
+      n_pcs: 50
+    ```
+  </Tab>
+</Tabs>
+
+## Advanced Usage
+
+### Batch Processing
+
+Process multiple datasets:
+
+```bash
+#!/bin/bash
+# process_all.sh
+
+for file in data/raw/*.h5ad; do
+    name=$(basename "$file" .h5ad)
+    echo "Processing $name..."
+    
+    heartmap "$file" \
+      --analysis-type comprehensive \
+      --output-dir "results/$name" \
+      --config configs/batch_config.yaml
+    
+    echo "Completed $name"
+done
+
+echo "All datasets processed!"
+```
+
+Run:
+```bash
+chmod +x process_all.sh
+./process_all.sh
+```
+
+### Integration with Workflow Managers
+
+#### Snakemake
+
+```python
+# Snakefile
+samples = ['sample1', 'sample2', 'sample3']
+
+rule all:
+    input:
+        expand('results/{sample}/heartmap_complete.h5ad', sample=samples)
+
+rule heartmap_analysis:
+    input:
+        'data/raw/{sample}.h5ad'
+    output:
+        'results/{sample}/heartmap_complete.h5ad'
+    params:
+        outdir='results/{sample}'
+    shell:
+        'heartmap {input} --analysis-type comprehensive --output-dir {params.outdir}'
+```
+
+#### Nextflow
+
+```groovy
+// main.nf
+params.data = 'data/raw/*.h5ad'
+params.outdir = 'results'
+
+process heartmap {
+    publishDir "${params.outdir}/${sample}", mode: 'copy'
+    
+    input:
+    path data_file
+    
+    output:
+    path "heartmap_complete.h5ad"
+    
+    script:
+    sample = data_file.simpleName
+    """
+    heartmap ${data_file} \
+      --analysis-type comprehensive \
+      --output-dir .
+    """
+}
+
+workflow {
+    data_files = Channel.fromPath(params.data)
+    heartmap(data_files)
+}
+```
+
+### Using with Docker
+
+Run HeartMAP in a container:
+
+```bash
+# Pull image (when available)
+docker pull tumo505/heartmap:latest
+
+# Run analysis
+docker run -v $(pwd)/data:/data \
+           -v $(pwd)/results:/results \
+           tumo505/heartmap:latest \
+           heartmap /data/heart_data.h5ad \
+             --output-dir /results
+```
+
+## Python CLI Interface
+
+Alternatively, use the Python API for CLI functionality:
+
+```python
+# run_heartmap.py
+from heartmap.api import CLIInterface
+
+cli = CLIInterface()
+results = cli.run_analysis(
+    data_path='data/heart_data.h5ad',
+    analysis_type='comprehensive',
+    output_dir='results/comprehensive',
+    config_path='config.yaml'
+)
+
+print(f"Analysis complete! {results['adata'].n_obs} cells processed.")
+```
+
+Run:
+```bash
+python run_heartmap.py
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Command not found: heartmap">
+    The CLI may not be in your PATH. Try:
+    
+    ```bash
+    # Using Python module directly
+    python -m heartmap.api data.h5ad --analysis-type basic
+    
+    # Or reinstall with pip
+    pip install --force-reinstall heartmap
+    ```
+  </Accordion>
+
+  <Accordion title="Memory errors during analysis">
+    Reduce dataset size in config:
+    
+    ```yaml
+    data:
+      max_cells_subset: 10000
+      max_genes_subset: 2000
+    ```
+    
+    Or use test mode:
+    ```yaml
+    data:
+      test_mode: true
+    ```
+  </Accordion>
+
+  <Accordion title="Analysis runs too slow">
+    - Reduce PCA components: `n_components_pca: 30`
+    - Reduce highly variable genes: `n_top_genes: 1500`
+    - Disable L-R database: `use_liana: false`
+    - Use test mode for quick validation
+  </Accordion>
+
+  <Accordion title="File format not supported">
+    Convert your data first:
+    
+    ```python
+    import scanpy as sc
+    
+    # From CSV
+    adata = sc.read_csv('data.csv')
+    
+    # From 10X directory
+    adata = sc.read_10x_mtx('filtered_feature_bc_matrix/')
+    
+    # Save as h5ad
+    adata.write('data.h5ad')
+    ```
+    
+    Then run HeartMAP:
+    ```bash
+    heartmap data.h5ad
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Environment Variables
+
+Set environment variables for default behavior:
+
+```bash
+# Set default output directory
+export HEARTMAP_OUTPUT_DIR=results
+
+# Set default config path
+export HEARTMAP_CONFIG=configs/default.yaml
+
+# Set number of threads
+export HEARTMAP_N_JOBS=8
+
+# Enable verbose logging
+export HEARTMAP_VERBOSE=1
+```
+
+Usage:
+```bash
+heartmap data.h5ad  # Uses environment defaults
+```
+
+## Tips and Best Practices
+
+<Card title="Data Organization" icon="folder-tree">
+  Organize your project:
+  ```
+  project/
+  ├── data/
+  │   └── raw/
+  │       └── heart_data.h5ad
+  ├── configs/
+  │   └── my_config.yaml
+  ├── results/
+  └── scripts/
+      └── run_analysis.sh
+  ```
+</Card>
+
+<Card title="Version Control" icon="code-branch">
+  Track configurations:
+  ```bash
+  git add configs/*.yaml
+  git commit -m "Update analysis parameters"
+  ```
+</Card>
+
+<Card title="Reproducibility" icon="redo">
+  - Always specify `--config` for consistent results
+  - Set `random_seed` in config
+  - Document package versions: `pip freeze > requirements.txt`
+</Card>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="API Usage" icon="server" href="/guides/api-usage">
+    REST API interface
+  </Card>
+  
+  <Card title="Python API" icon="code" href="/api-reference/api/cli-interface">
+    CLIInterface reference
+  </Card>
+  
+  <Card title="Configuration" icon="cog" href="/api-reference/config">
+    Full config docs
+  </Card>
+</CardGroup>

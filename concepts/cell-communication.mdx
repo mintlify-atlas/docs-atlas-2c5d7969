@@ -1,0 +1,580 @@
+---
+title: 'Cell-Cell Communication'
+description: 'Understanding ligand-receptor interactions and communication networks in the heart'
+icon: 'network-wired'
+---
+
+## Overview
+
+Cell-cell communication is fundamental to coordinated cardiac function. HeartMAP analyzes intercellular signaling by inferring ligand-receptor (L-R) interactions from single-cell RNA-seq co-expression patterns, revealing how different cell types communicate to maintain heart health and respond to disease.
+
+<Info>
+**Key Insight:** Communication hubs in the heart include atrial cardiomyocytes and adipocytes with hub scores of 0.037 to 0.047, indicating their central role in coordinating cardiac signaling.
+</Info>
+
+## Ligand-Receptor Analysis
+
+### What Are Ligand-Receptor Interactions?
+
+<Steps>
+  <Step title="Ligand Production">
+    A **sender** cell produces and secretes a signaling molecule (ligand):
+    - Proteins (growth factors, cytokines)
+    - Peptides (natriuretic peptides)
+    - Small molecules
+  </Step>
+  
+  <Step title="Receptor Binding">
+    A **receiver** cell expresses a receptor protein that binds the ligand:
+    - Transmembrane receptors
+    - G-protein coupled receptors
+    - Receptor tyrosine kinases
+  </Step>
+  
+  <Step title="Signal Transduction">
+    Binding triggers intracellular signaling cascades:
+    - Gene expression changes
+    - Metabolic shifts
+    - Cellular responses
+  </Step>
+</Steps>
+
+### The L-R Database
+
+HeartMAP uses curated ligand-receptor pair databases:
+
+<Tabs>
+  <Tab title="LIANA (Preferred)">
+    **Ligand-receptor Inference Framework**
+    
+    When available, HeartMAP uses LIANA's consensus database:
+    - 'consensus': Curated from multiple sources (recommended)
+    - 'cellphonedb': CellPhoneDB database
+    - 'omnipath': OmniPath database
+    - 'connectome': Ramilowski 2015
+    - 'cellinker': CellLinker database
+
+    ```python
+    # LIANA integration
+    from heartmap import Config
+    config = Config.default()
+    config.analysis.use_liana = True
+    ```
+  </Tab>
+  
+  <Tab title="Fallback Database">
+    **Built-in Cardiac L-R Pairs**
+    
+    When LIANA is unavailable, HeartMAP uses 100+ curated cardiac-relevant pairs:
+    - Angiogenesis: VEGFA-FLT1, VEGFA-KDR
+    - TGF-beta: TGFB1-TGFBR1, TGFB1-TGFBR2
+    - FGF signaling: FGF2-FGFR1, FGF2-FGFR2
+    - Inflammatory: IL6-IL6R, TNF-TNFRSF1A
+    - Cardiac-specific: NRG1-ERBB2, EDN1-EDNRA
+    - And 90+ more...
+
+    Each pair includes confidence score (0-1).
+  </Tab>
+</Tabs>
+
+### Key Cardiac L-R Interactions
+
+<AccordionGroup>
+  <Accordion title="Angiogenesis & Vascular" icon="heart-pulse">
+    **VEGF Family** (Vascular Endothelial Growth Factor):
+    - **VEGFA → FLT1/KDR/NRP1**: Blood vessel formation
+    - **VEGFC → FLT4**: Lymphatic development
+    - **ANGPT1/2 → TEK**: Vessel stabilization
+
+    **Clinical Relevance:** Coronary angiogenesis, therapeutic angiogenesis post-MI
+  </Accordion>
+
+  <Accordion title="TGF-beta Superfamily" icon="arrows-spin">
+    **Fibrosis and ECM Regulation:**
+    - **TGFB1/2/3 → TGFBR1/TGFBR2**: Fibroblast activation
+    - **BMP2/4/7 → BMPR1A/BMPR2**: Cardiac development
+
+    **Clinical Relevance:** Cardiac fibrosis, remodeling after injury, heart failure progression
+  </Accordion>
+
+  <Accordion title="Inflammatory Signaling" icon="fire">
+    **Cytokines:**
+    - **IL6 → IL6R**: Inflammation, cardiac remodeling
+    - **TNF → TNFRSF1A/B**: Inflammatory response, apoptosis
+    - **IL1B → IL1R1**: Acute inflammation
+
+    **Chemokines:**
+    - **CXCL12 → CXCR4/CXCR7**: Immune cell recruitment
+    - **CCL2 → CCR2**: Monocyte infiltration
+
+    **Clinical Relevance:** Myocarditis, post-MI inflammation, chronic heart failure
+  </Accordion>
+
+  <Accordion title="Cardiac-Specific" icon="heart">
+    **Neuregulin Signaling:**
+    - **NRG1 → ERBB2/ERBB4**: Cardiomyocyte survival, contractility
+
+    **Endothelin System:**
+    - **EDN1 → EDNRA/EDNRB**: Vasoconstriction, remodeling
+
+    **Natriuretic Peptides:**
+    - **NPPA/NPPB → NPR1**: Blood pressure regulation, diuresis
+
+    **Clinical Relevance:** Heart failure therapies (BNP), cardiotoxicity prevention (NRG1)
+  </Accordion>
+
+  <Accordion title="Metabolic Signaling" icon="chart-simple">
+    **Growth Factors:**
+    - **IGF1 → IGF1R**: Cardiomyocyte growth, metabolism
+    - **FGF2 → FGFR1/2**: Angiogenesis, cardioprotection
+
+    **Metabolic Hormones:**
+    - **LEP → LEPR**: Leptin signaling, metabolic regulation
+    - **ADIPOQ → ADIPOR1**: Adiponectin, cardioprotection
+
+    **Clinical Relevance:** Metabolic syndrome, diabetic cardiomyopathy
+  </Accordion>
+</AccordionGroup>
+
+## Communication Scoring Method
+
+HeartMAP calculates communication strength using co-expression analysis:
+
+### Algorithm
+
+<Steps>
+  <Step title="Calculate Mean Expression per Cell Type">
+    For each cell type, compute mean expression of all genes:
+    ```python
+    # Pseudocode
+    for cell_type in celltypes:
+        cells = adata[adata.obs['leiden'] == cell_type]
+        mean_expr[cell_type] = cells.X.mean(axis=0)
+    ```
+  </Step>
+  
+  <Step title="Filter L-R Pairs">
+    Keep only pairs where both genes are expressed:
+    ```python
+    # Filter by expression threshold (e.g., > 0.1)
+    if ligand_expr > 0.1 and receptor_expr > 0.1:
+        # Proceed with scoring
+    ```
+  </Step>
+  
+  <Step title="Calculate Communication Score">
+    Use geometric mean of co-expression:
+    ```python
+    # Communication strength formula
+    score = sqrt(ligand_expr × receptor_expr)
+    ```
+    
+    **Rationale:** 
+    - Requires both ligand AND receptor to be expressed
+    - Balanced weighting of sender and receiver
+    - Dampens false positives from one-sided expression
+  </Step>
+  
+  <Step title="Build Communication Matrix">
+    Create cell-type × cell-type interaction matrix:
+    ```
+    DataFrame columns:
+    - source: sender cell type
+    - target: receiver cell type  
+    - ligand: ligand gene
+    - receptor: receptor gene
+    - communication_score: strength (0-1)
+    ```
+  </Step>
+</Steps>
+
+### Example Calculation
+
+```python
+# Real example from HeartMAP source code
+# src/heartmap/pipelines/__init__.py:216-268
+
+for ligand, receptor in ligand_receptor_pairs:
+    if ligand not in adata.var_names or receptor not in adata.var_names:
+        continue
+    
+    ligand_idx = list(adata.var_names).index(ligand)
+    receptor_idx = list(adata.var_names).index(receptor)
+    
+    for source_type in cell_types:
+        ligand_expr = cell_type_expression[source_type][ligand_idx]
+        
+        if ligand_expr > 0.1:  # Expression threshold
+            for target_type in cell_types:
+                if source_type == target_type:
+                    continue  # Skip self-communication
+                
+                receptor_expr = cell_type_expression[target_type][receptor_idx]
+                
+                if receptor_expr > 0.1:
+                    # Calculate strength
+                    strength = np.sqrt(ligand_expr * receptor_expr)
+                    
+                    communication_data.append({
+                        'source': source_type,
+                        'target': target_type,
+                        'ligand': ligand,
+                        'receptor': receptor,
+                        'communication_score': strength
+                    })
+```
+
+## Communication Hub Analysis
+
+### What Are Communication Hubs?
+
+Cells that send or receive many signals, acting as coordination centers in the cardiac communication network.
+
+<CardGroup cols={2}>
+  <Card title="High Hub Score" icon="star">
+    **Characteristics:**
+    - Express many ligands/receptors
+    - Connect to many other cell types
+    - Central to network topology
+    - Potential therapeutic targets
+  </Card>
+  
+  <Card title="Low Hub Score" icon="circle">
+    **Characteristics:**
+    - Specialized, limited communication
+    - Peripheral network position
+    - Focused signaling roles
+  </Card>
+</CardGroup>
+
+### Hub Score Calculation
+
+HeartMAP uses expression variability to identify hubs:
+
+```python
+# Hub score formula (from source code)
+hub_score = (std × mean) / (variance + 1)
+```
+
+**Components:**
+- **std**: Standard deviation of expression (variability)
+- **mean**: Mean expression (overall level)
+- **variance**: Expression variance (normalized denominator)
+
+**Interpretation:**
+- High variability + high expression = high hub score
+- Indicates dynamic signaling capacity
+- Normalized to prevent outlier dominance
+
+### Known Cardiac Hubs
+
+<Tabs>
+  <Tab title="Atrial Cardiomyocytes">
+    **Hub Score: 0.037 - 0.047**
+    
+    **Key Signaling:**
+    - NPPA/NPPB secretion (natriuretic peptides)
+    - EDN1 production (endothelin)
+    - Mechanical stretch sensing
+    - Endocrine function
+
+    **Why High Hub Score:**
+    - Central to hemodynamic regulation
+    - Communicate with endothelial, fibroblasts, immune cells
+    - Respond to volume/pressure changes
+  </Tab>
+  
+  <Tab title="Adipocytes">
+    **Hub Score: 0.037 - 0.047**
+    
+    **Key Signaling:**
+    - Adiponectin (ADIPOQ) secretion
+    - Leptin (LEP) signaling
+    - Inflammatory cytokines
+    - Metabolic regulation
+
+    **Why High Hub Score:**
+    - Epicardial fat regulates cardiomyocytes
+    - Paracrine effects on vasculature
+    - Link between metabolism and cardiac function
+  </Tab>
+  
+  <Tab title="Endothelial Cells">
+    **Hub Score: Moderate-High**
+    
+    **Key Signaling:**
+    - VEGF family production and reception
+    - Nitric oxide (indirect)
+    - Adhesion molecules (ICAM1, VCAM1)
+    - Chemokine presentation
+
+    **Why Important:**
+    - Interface between blood and tissue
+    - Regulate vascular tone
+    - Control immune cell entry
+  </Tab>
+  
+  <Tab title="Fibroblasts">
+    **Hub Score: Moderate**
+    
+    **Key Signaling:**
+    - ECM proteins (collagens, fibronectin)
+    - TGF-beta production
+    - Response to mechanical stress
+    - Cytokine production in disease
+
+    **Why Important:**
+    - Structural homeostasis
+    - Fibrosis in disease
+    - Therapeutic target for remodeling
+  </Tab>
+</Tabs>
+
+## Pathway Analysis
+
+HeartMAP identifies enriched signaling pathways in cardiac communication:
+
+<AccordionGroup>
+  <Accordion title="Cardiac Development Pathways">
+    - **Notch signaling**: DLL1/4, JAG1/2 → NOTCH1/2/3
+    - **Wnt signaling**: WNT3A, WNT5A → FZD receptors
+    - **BMP/TGF-beta**: Chamber formation, valve development
+  </Accordion>
+
+  <Accordion title="Hemodynamic Regulation">
+    - **Natriuretic peptide pathway**: NPPA/NPPB → NPR1
+    - **Endothelin system**: EDN1 → EDNRA/EDNRB
+    - **Adrenergic signaling**: Indirect (receptor expression)
+  </Accordion>
+
+  <Accordion title="Angiogenesis & ECM">
+    - **VEGF pathway**: VEGFA/C → FLT1/KDR/FLT4
+    - **FGF pathway**: FGF2/7/9/10 → FGFR1/2/3
+    - **Integrin-ECM**: Collagen, fibronectin, laminin interactions
+  </Accordion>
+
+  <Accordion title="Inflammation & Immune">
+    - **Cytokine signaling**: IL6, TNF, IL1B pathways
+    - **Chemokine gradients**: CXCL12, CCL2, CCL5
+    - **Complement system**: C3, C5 signaling
+  </Accordion>
+</AccordionGroup>
+
+## Running Communication Analysis
+
+### Basic Usage
+
+```python
+from heartmap import Config
+from heartmap.pipelines import AdvancedCommunicationPipeline
+
+# Initialize configuration
+config = Config.default()
+config.analysis.use_liana = True  # Use LIANA if available
+
+# Create pipeline
+pipeline = AdvancedCommunicationPipeline(config)
+
+# Run analysis (requires annotated data)
+results = pipeline.run(
+    data_path='results/basic/annotated_data.h5ad',
+    output_dir='results/communication'
+)
+
+# Access results
+comm_scores = results['results']['communication_scores']
+hub_scores = results['results']['hub_scores']
+pathway_scores = results['results']['pathway_scores']
+
+print(f"Detected {len(comm_scores)} L-R interactions")
+print(f"\nTop 5 interactions:")
+print(comm_scores.nlargest(5, 'communication_score'))
+```
+
+### Interpreting Results
+
+<Tabs>
+  <Tab title="Communication Scores">
+    **DataFrame format:**
+    ```python
+    # communication_scores.csv
+    source          target          ligand  receptor  communication_score
+    Cardiomyocyte  Fibroblast      TGFB1   TGFBR1    0.856
+    Endothelial    Cardiomyocyte   VEGFA   KDR       0.742
+    Fibroblast     Endothelial     FN1     ITGA5     0.689
+    ...
+    ```
+
+    **Key columns:**
+    - **source**: Cell type sending signal
+    - **target**: Cell type receiving signal
+    - **ligand**: Ligand gene name
+    - **receptor**: Receptor gene name
+    - **communication_score**: Strength (0-1)
+  </Tab>
+  
+  <Tab title="Hub Scores">
+    **Series format (per cell):**
+    ```python
+    # hub_scores.csv
+    cell_barcode         hub_score
+    AAACCCAAGAAACACT-1   0.042
+    AAACCCAAGAAACCAT-1   0.038
+    AAACCCAAGAAACCGC-1   0.015
+    ...
+    ```
+
+    **Interpretation:**
+    - Scores range 0-1 (typically 0.01-0.05 for hubs)
+    - Higher = more central to communication network
+    - Can aggregate by cell type for cell-type hub scores
+  </Tab>
+  
+  <Tab title="Pathway Scores">
+    **Future feature (placeholder in current version)**
+    
+    Will include:
+    - Pathway enrichment p-values
+    - Overrepresented signaling cascades
+    - GO/KEGG pathway annotations
+  </Tab>
+</Tabs>
+
+### Visualizations
+
+Automatically generated plots:
+
+<CardGroup cols={3}>
+  <Card title="Communication Heatmap" icon="table-cells">
+    Cell-type × cell-type matrix showing interaction strength
+  </Card>
+  <Card title="Hub Score Plot" icon="chart-scatter">
+    UMAP colored by hub scores, highlighting communication centers
+  </Card>
+  <Card title="Pathway Scores" icon="diagram-project">
+    Bar plot of enriched pathways (when available)
+  </Card>
+</CardGroup>
+
+## Advanced: Custom L-R Analysis
+
+### Using Custom L-R Database
+
+```python
+from heartmap.data import LigandReceptorDatabase
+import scanpy as sc
+
+# Load custom L-R pairs
+db = LigandReceptorDatabase(resource='consensus')  # or 'cellphonedb'
+
+# Filter to genes in your data
+adata = sc.read_h5ad('annotated_data.h5ad')
+available_genes = adata.var_names.tolist()
+
+lr_pairs = db.get_pairs(
+    confidence_threshold=0.8,  # High confidence only
+    present_in_data=available_genes
+)
+
+print(f"Found {len(lr_pairs)} high-confidence L-R pairs in dataset")
+
+# Export for review
+db.save_to_csv('my_lr_database.csv')
+```
+
+### Filtering by Specific Pathways
+
+```python
+import pandas as pd
+
+# Load communication results
+comm = pd.read_csv('results/communication/communication_scores.csv')
+
+# Filter for angiogenesis pathway
+vegf_interactions = comm[
+    comm['ligand'].str.contains('VEGF') | 
+    comm['receptor'].str.contains('FLT|KDR')
+]
+
+print("VEGF pathway interactions:")
+print(vegf_interactions)
+
+# Filter for inflammatory signaling
+inflam_ligands = ['IL6', 'TNF', 'IL1B', 'IFNG']
+inflam_comm = comm[comm['ligand'].isin(inflam_ligands)]
+```
+
+### Chamber-Specific Communication
+
+Combine communication and chamber analysis:
+
+```python
+# Requires chamber labels in data
+adata = sc.read_h5ad('multi_chamber_annotated.h5ad')
+
+# Subset to specific chamber
+lv_cells = adata[adata.obs['chamber'] == 'LV']
+
+# Run communication analysis on LV only
+from heartmap.pipelines import AdvancedCommunicationPipeline
+pipeline = AdvancedCommunicationPipeline(config)
+lv_results = pipeline.run(lv_cells, 'results/lv_communication')
+
+print("LV-specific communication hubs:")
+print(lv_results['results']['hub_scores'].nlargest(10))
+```
+
+## Clinical Applications
+
+<CardGroup cols={2}>
+  <Card title="Drug Target Identification" icon="bullseye">
+    **Use communication hubs and pathways:**
+    - Block pathological signaling (TGF-beta in fibrosis)
+    - Enhance protective signaling (NRG1-ERBB2)
+    - Target cell-type specific receptors
+  </Card>
+  
+  <Card title="Disease Mechanism Understanding" icon="magnifying-glass">
+    **Compare healthy vs. diseased:**
+    - Altered communication networks in heart failure
+    - Inflammatory pathway activation in myocarditis
+    - Dysregulated angiogenesis post-MI
+  </Card>
+  
+  <Card title="Biomarker Discovery" icon="vial">
+    **Communication-derived biomarkers:**
+    - NPPA/NPPB (already clinical: BNP test)
+    - Ligands detectable in blood
+    - Predict response to therapy
+  </Card>
+  
+  <Card title="Precision Medicine" icon="dna">
+    **Personalized signaling maps:**
+    - Patient-specific communication networks
+    - Targeted therapy selection
+    - Predict drug response
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Chamber Analysis" icon="heart" href="/concepts/chamber-analysis">
+    Combine communication with chamber-specific analysis
+  </Card>
+  
+  <Card title="API Reference" icon="code" href="/api-reference/pipelines/communication">
+    Detailed API documentation
+  </Card>
+</CardGroup>
+
+## References
+
+<Note>
+**Method Reference:** 
+- LIANA: Dimitrov et al. (2022). Nature Methods.
+- CellPhoneDB: Efremova et al. (2020). Nature Protocols.
+
+**HeartMAP Application:**
+Kgabeng, T., et al. (2025). HeartMAP: A Multi-Chamber Spatial Framework for Cardiac Cell-Cell Communication. *Computational and Structural Biotechnology Journal*.
+</Note>

@@ -1,0 +1,346 @@
+---
+title: "AnalysisConfig"
+description: "Analysis configuration for HeartMAP"
+---
+
+The `AnalysisConfig` class defines configuration parameters for dimensionality reduction, clustering, and downstream analysis in HeartMAP.
+
+## Class Definition
+
+```python
+from heartmap.config import AnalysisConfig
+```
+
+## Constructor
+
+```python
+AnalysisConfig(
+    n_components_pca=50,
+    n_neighbors=10,
+    n_pcs=40,
+    resolution=0.5,
+    n_marker_genes=25,
+    use_leiden=True,
+    use_liana=True
+)
+```
+
+## Configuration Fields
+
+### n_components_pca
+
+<ParamField path="n_components_pca" type="int" default="50">
+  Number of principal components to compute during PCA. More components capture more variance but increase computation time. Used as input for neighborhood graph construction.
+</ParamField>
+
+**Example:**
+```python
+from heartmap.config import AnalysisConfig
+
+config = AnalysisConfig(n_components_pca=100)
+# Compute 100 principal components
+```
+
+### n_neighbors
+
+<ParamField path="n_neighbors" type="int" default="10">
+  Number of neighbors to use when constructing the k-nearest neighbor graph. This parameter affects the connectivity of the neighborhood graph and influences clustering results. Lower values emphasize local structure; higher values emphasize global structure.
+</ParamField>
+
+**Example:**
+```python
+config = AnalysisConfig(n_neighbors=15)
+# Use 15 neighbors for neighborhood graph
+```
+
+### n_pcs
+
+<ParamField path="n_pcs" type="int" default="40">
+  Number of principal components to use for computing the neighborhood graph and UMAP. Should be less than or equal to `n_components_pca`. Using fewer PCs can reduce noise.
+</ParamField>
+
+**Example:**
+```python
+config = AnalysisConfig(
+    n_components_pca=50,
+    n_pcs=30  # Use only top 30 PCs for downstream analysis
+)
+```
+
+### resolution
+
+<ParamField path="resolution" type="float" default="0.5">
+  Resolution parameter for Leiden/Louvain clustering. Controls the coarseness of the clustering. Higher values produce more clusters (finer granularity); lower values produce fewer clusters (coarser granularity). Typical range: 0.1 to 2.0.
+</ParamField>
+
+**Example:**
+```python
+config = AnalysisConfig(resolution=0.8)
+# Higher resolution for more細grained clusters
+
+config = AnalysisConfig(resolution=0.3)
+# Lower resolution for broader clusters
+```
+
+### n_marker_genes
+
+<ParamField path="n_marker_genes" type="int" default="25">
+  Number of marker genes to identify per cluster. These genes are most differentially expressed in each cluster and are useful for cell type annotation.
+</ParamField>
+
+**Example:**
+```python
+config = AnalysisConfig(n_marker_genes=50)
+# Identify top 50 marker genes per cluster
+```
+
+### use_leiden
+
+<ParamField path="use_leiden" type="bool" default="true">
+  Whether to use Leiden clustering algorithm. If `true`, uses Leiden algorithm (recommended). If `false`, falls back to Louvain algorithm. Leiden generally provides better quality clusters.
+</ParamField>
+
+**Example:**
+```python
+config = AnalysisConfig(use_leiden=True)
+# Use Leiden clustering (recommended)
+
+config = AnalysisConfig(use_leiden=False)
+# Use Louvain clustering instead
+```
+
+### use_liana
+
+<ParamField path="use_liana" type="bool" default="true">
+  Whether to perform cell-cell communication analysis using LIANA (Ligand-Receptor Analysis). If `true`, runs LIANA to identify ligand-receptor interactions between cell types.
+</ParamField>
+
+**Example:**
+```python
+config = AnalysisConfig(use_liana=True)
+# Enable ligand-receptor analysis
+
+config = AnalysisConfig(use_liana=False)
+# Skip cell-cell communication analysis
+```
+
+## Usage Examples
+
+### Default Configuration
+
+```python
+from heartmap.config import AnalysisConfig
+
+# Create with default values
+config = AnalysisConfig()
+print(config.n_components_pca)  # 50
+print(config.resolution)  # 0.5
+print(config.use_leiden)  # True
+```
+
+### Custom Configuration
+
+```python
+from heartmap.config import AnalysisConfig
+
+# Create with custom values
+config = AnalysisConfig(
+    n_components_pca=100,
+    n_pcs=50,
+    n_neighbors=15,
+    resolution=0.8,
+    n_marker_genes=50
+)
+```
+
+### Fine-Grained Clustering
+
+```python
+from heartmap.config import AnalysisConfig
+
+# Configure for more細 granular clusters
+config = AnalysisConfig(
+    resolution=1.0,        # Higher resolution
+    n_neighbors=15,        # More neighbors for smoother clusters
+    n_marker_genes=50,     # More markers for annotation
+    use_leiden=True
+)
+```
+
+### Coarse Clustering
+
+```python
+from heartmap.config import AnalysisConfig
+
+# Configure for broad cell type clusters
+config = AnalysisConfig(
+    resolution=0.3,        # Lower resolution
+    n_neighbors=20,        # More neighbors for global structure
+    n_marker_genes=25,
+    use_leiden=True
+)
+```
+
+### Fast Analysis (Skip Communication)
+
+```python
+from heartmap.config import AnalysisConfig
+
+# Skip time-consuming LIANA analysis
+config = AnalysisConfig(
+    use_liana=False,       # Disable cell-cell communication
+    n_components_pca=30,   # Fewer components
+    n_marker_genes=20      # Fewer markers
+)
+```
+
+### High-Dimensional Analysis
+
+```python
+from heartmap.config import AnalysisConfig
+
+# Capture more variance with more PCs
+config = AnalysisConfig(
+    n_components_pca=100,  # More PCs
+    n_pcs=80,              # Use more PCs downstream
+    n_neighbors=10
+)
+```
+
+### Using with Main Config
+
+```python
+from heartmap.config import Config, AnalysisConfig
+
+# Create custom analysis config
+analysis_config = AnalysisConfig(
+    resolution=0.8,
+    n_neighbors=15,
+    use_liana=True
+)
+
+# Use with main config
+config = Config.default()
+config.analysis = analysis_config
+
+# Or create from dictionary
+config = Config.from_dict({
+    'analysis': {
+        'resolution': 0.8,
+        'n_neighbors': 15,
+        'use_liana': True
+    }
+})
+```
+
+### Loading from YAML
+
+```yaml
+# config.yaml
+analysis:
+  n_components_pca: 50
+  n_neighbors: 15
+  n_pcs: 40
+  resolution: 0.8
+  n_marker_genes: 50
+  use_leiden: true
+  use_liana: true
+```
+
+```python
+from heartmap.config import Config
+
+config = Config.from_yaml('config.yaml')
+print(config.analysis.resolution)  # 0.8
+```
+
+## Best Practices
+
+### Dimensionality Reduction
+
+- **n_components_pca**: Use 30-100 depending on dataset complexity
+  - Small datasets (< 10k cells): 30-50 components
+  - Large datasets (> 50k cells): 50-100 components
+- **n_pcs**: Use 70-90% of `n_components_pca`
+  - Set to 30-50 for most datasets
+  - Check explained variance ratio to determine optimal number
+
+### Neighborhood Graph
+
+- **n_neighbors**: Typical range 10-30
+  - 10-15: Emphasizes local structure, more clusters
+  - 20-30: Emphasizes global structure, fewer clusters
+  - Larger values for datasets > 50k cells
+
+### Clustering Resolution
+
+- **resolution**: Adjust based on expected cell type diversity
+  - 0.2-0.4: Major cell types (e.g., immune, epithelial, stromal)
+  - 0.5-0.8: Cell subtypes (e.g., T cell subtypes, macrophage states)
+  - 0.9-2.0: Fine-grained states (e.g., activation states, cell cycle)
+- Start with 0.5 and adjust based on biological knowledge
+- Use multiple resolutions to explore hierarchical structure
+
+### Marker Genes
+
+- **n_marker_genes**: 20-50 is typical
+  - 20-25: Quick overview of cluster identity
+  - 50-100: Detailed characterization for annotation
+
+### Algorithm Selection
+
+- **use_leiden**: Always use `true` (Leiden is superior to Louvain)
+- **use_liana**: Set to `false` if:
+  - Only interested in cell type identification
+  - Limited computational resources
+  - Dataset has < 5 cell types (communication less interesting)
+
+## Common Configurations
+
+### Quick Exploratory Analysis
+
+```python
+config = AnalysisConfig(
+    n_components_pca=30,
+    n_pcs=30,
+    n_neighbors=10,
+    resolution=0.5,
+    n_marker_genes=20,
+    use_leiden=True,
+    use_liana=False  # Skip for speed
+)
+```
+
+### Comprehensive Analysis
+
+```python
+config = AnalysisConfig(
+    n_components_pca=100,
+    n_pcs=50,
+    n_neighbors=15,
+    resolution=0.8,
+    n_marker_genes=50,
+    use_leiden=True,
+    use_liana=True  # Full analysis
+)
+```
+
+### Large Dataset Analysis
+
+```python
+config = AnalysisConfig(
+    n_components_pca=100,
+    n_pcs=80,
+    n_neighbors=30,     # More neighbors for large datasets
+    resolution=1.0,     # May need higher resolution
+    n_marker_genes=25,
+    use_leiden=True,
+    use_liana=True
+)
+```
+
+## See Also
+
+- [Config](/api/config/config) - Main configuration class
+- [DataConfig](/api/config/data-config) - Data processing configuration
+- [ModelConfig](/api/config/model-config) - Model configuration

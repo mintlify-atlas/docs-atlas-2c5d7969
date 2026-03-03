@@ -1,0 +1,315 @@
+---
+title: 'Basic Analysis Tutorial'
+description: 'Step-by-step guide for performing basic single-cell analysis with HeartMAP'
+---
+
+# Basic Analysis with BasicPipeline
+
+The `BasicPipeline` provides essential single-cell analysis capabilities including quality control, normalization, clustering, and cell type annotation.
+
+## Overview
+
+The BasicPipeline performs:
+- Data loading and quality control filtering
+- Normalization and scaling
+- PCA and neighborhood graph computation
+- Leiden clustering for cell type identification
+- UMAP visualization
+- Quality metrics reporting
+
+<Steps>
+
+### Install HeartMAP
+
+```bash
+pip install heartmap
+```
+
+### Prepare Your Data
+
+Ensure your data is in AnnData format (`.h5ad`) or 10X format (`.h5`, `.mtx`):
+
+```python
+import scanpy as sc
+
+# Load your data
+adata = sc.read_h5ad('your_data.h5ad')
+print(f"Loaded {adata.n_obs:,} cells × {adata.n_vars:,} genes")
+```
+
+### Configure the Pipeline
+
+Create a configuration object with your desired parameters:
+
+```python
+from heartmap import Config
+
+# Load default configuration
+config = Config.default()
+
+# Customize parameters
+config.data.min_genes = 200  # Minimum genes per cell
+config.data.min_cells = 3    # Minimum cells per gene
+config.data.max_cells_subset = 50000  # For memory optimization
+config.analysis.resolution = 0.5  # Clustering resolution
+
+# Update output paths
+config.update_paths('./my_analysis')
+config.create_directories()
+```
+
+### Run the Basic Pipeline
+
+```python
+from heartmap.pipelines import BasicPipeline
+
+# Initialize the pipeline
+pipeline = BasicPipeline(config)
+
+# Run complete analysis
+results = pipeline.run(
+    data_path='data/raw/heart_data.h5ad',
+    output_dir='results/basic'
+)
+
+print("Basic pipeline completed!")
+```
+
+### Access the Results
+
+The pipeline returns a dictionary with processed data and results:
+
+```python
+# Access the processed AnnData object
+adata = results['adata']
+
+# View cluster assignments
+cluster_labels = results['results']['cluster_labels']
+print(f"Identified {len(set(cluster_labels))} cell clusters")
+
+# Examine cluster distribution
+import pandas as pd
+cluster_counts = pd.Series(adata.obs['leiden']).value_counts()
+print("\nCluster sizes:")
+print(cluster_counts)
+```
+
+### Explore Visualizations
+
+The pipeline automatically generates visualizations in `output_dir/figures/`:
+
+```python
+from pathlib import Path
+import matplotlib.pyplot as plt
+from matplotlib.image import imread
+
+# Load and display UMAP
+fig_path = Path('results/basic/figures/umap_clusters.png')
+if fig_path.exists():
+    img = imread(fig_path)
+    plt.figure(figsize=(10, 8))
+    plt.imshow(img)
+    plt.axis('off')
+    plt.title('Cell Type Clusters')
+    plt.show()
+```
+
+### Examine Quality Metrics
+
+View QC metrics computed during preprocessing:
+
+```python
+import scanpy as sc
+
+# QC metrics are stored in adata.obs
+print("QC Metrics:")
+print(f"Mean genes per cell: {adata.obs['n_genes'].mean():.0f}")
+print(f"Mean UMI per cell: {adata.obs['total_counts'].mean():.0f}")
+
+if 'pct_counts_mt' in adata.obs.columns:
+    print(f"Mean mitochondrial %: {adata.obs['pct_counts_mt'].mean():.2f}%")
+
+# Visualize QC distributions
+sc.pl.violin(adata, ['n_genes', 'total_counts'], 
+             jitter=0.4, multi_panel=True)
+```
+
+### Save Results for Further Analysis
+
+The pipeline saves results automatically, but you can also export specific components:
+
+```python
+# Annotated data is saved automatically
+# Load it for downstream analysis:
+adata_annotated = sc.read_h5ad('results/basic/annotated_data.h5ad')
+
+# Export cluster assignments to CSV
+cluster_df = pd.DataFrame({
+    'cell_id': adata.obs_names,
+    'cluster': adata.obs['leiden'],
+    'n_genes': adata.obs['n_genes'],
+    'n_counts': adata.obs['total_counts']
+})
+cluster_df.to_csv('results/basic/cluster_assignments.csv', index=False)
+```
+
+</Steps>
+
+## Complete Working Example
+
+Here's a complete script from data loading to visualization:
+
+```python
+from heartmap import Config
+from heartmap.pipelines import BasicPipeline
+import scanpy as sc
+import pandas as pd
+from pathlib import Path
+
+# Setup
+config = Config.default()
+config.data.min_genes = 200
+config.data.min_cells = 3
+config.data.max_cells_subset = 50000
+config.analysis.resolution = 0.5
+config.update_paths('./analysis')
+config.create_directories()
+
+# Run pipeline
+print("=== Running Basic Pipeline ===")
+pipeline = BasicPipeline(config)
+results = pipeline.run('data/raw/heart_data.h5ad', 'results/basic')
+
+# Analyze results
+adata = results['adata']
+print(f"\nProcessed {adata.n_obs:,} cells")
+print(f"Identified {len(adata.obs['leiden'].unique())} clusters")
+
+# View cluster composition
+cluster_counts = adata.obs['leiden'].value_counts()
+for cluster, count in cluster_counts.items():
+    pct = 100 * count / adata.n_obs
+    print(f"Cluster {cluster}: {count:,} cells ({pct:.1f}%)")
+
+# Generate additional visualizations
+sc.pl.umap(adata, color=['leiden', 'n_genes', 'total_counts'],
+           ncols=3, save='_detailed.png')
+
+print("\nAnalysis complete! Check results/basic/ for outputs.")
+```
+
+## Expected Output Structure
+
+The BasicPipeline creates the following output structure:
+
+```
+results/basic/
+├── annotated_data.h5ad          # Processed AnnData object
+├── figures/
+│   ├── umap_clusters.png        # UMAP with cluster labels
+│   └── qc_metrics.png           # QC distribution plots
+└── tables/
+    └── marker_genes.csv          # Top marker genes per cluster
+```
+
+## Configuration Options
+
+<ParamField path="data.min_genes" type="int" default="200">
+  Minimum genes per cell for QC filtering
+</ParamField>
+
+<ParamField path="data.min_cells" type="int" default="3">
+  Minimum cells per gene for QC filtering
+</ParamField>
+
+<ParamField path="data.max_cells_subset" type="int" default="50000">
+  Maximum cells to keep (for memory optimization)
+</ParamField>
+
+<ParamField path="data.target_sum" type="float" default="10000.0">
+  Target sum for normalization
+</ParamField>
+
+<ParamField path="analysis.resolution" type="float" default="0.5">
+  Leiden clustering resolution (higher = more clusters)
+</ParamField>
+
+<ParamField path="analysis.n_pcs" type="int" default="40">
+  Number of principal components to use
+</ParamField>
+
+<ParamField path="analysis.n_neighbors" type="int" default="10">
+  Number of neighbors for graph construction
+</ParamField>
+
+## Best Practices
+
+<Card title="Memory Management" icon="memory">
+  For large datasets (>100K cells), adjust `max_cells_subset` to fit your RAM:
+  - 8GB RAM: Use `max_cells_subset=10000`
+  - 16GB RAM: Use `max_cells_subset=30000`
+  - 32GB+ RAM: Use `max_cells_subset=50000` or higher
+</Card>
+
+<Card title="Clustering Resolution" icon="project-diagram">
+  The `resolution` parameter controls cluster granularity:
+  - Low (0.2-0.5): Broader cell types
+  - Medium (0.5-1.0): Standard cell types
+  - High (1.0-2.0): Fine-grained subtypes
+</Card>
+
+<Card title="Quality Control" icon="filter">
+  Adjust QC thresholds based on your tissue:
+  - `min_genes`: 200 (standard), 500 (strict)
+  - Filter high mitochondrial % cells (>20%) for better quality
+</Card>
+
+## Common Issues
+
+<AccordionGroup>
+  <Accordion title="Pipeline fails with memory error">
+    Reduce `max_cells_subset` and `max_genes_subset` in the config:
+    
+    ```python
+    config.data.max_cells_subset = 10000
+    config.data.max_genes_subset = 2000
+    ```
+  </Accordion>
+
+  <Accordion title="Too many/few clusters identified">
+    Adjust the clustering resolution:
+    
+    ```python
+    # For fewer, broader clusters
+    config.analysis.resolution = 0.3
+    
+    # For more, finer clusters
+    config.analysis.resolution = 1.0
+    ```
+  </Accordion>
+
+  <Accordion title="UMAP not computed">
+    The pipeline computes UMAP automatically. If missing, run manually:
+    
+    ```python
+    import scanpy as sc
+    sc.tl.umap(adata)
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Communication Analysis" icon="network-wired" href="/guides/communication-analysis">
+    Analyze cell-cell interactions
+  </Card>
+  
+  <Card title="Multi-Chamber Analysis" icon="heart" href="/guides/multi-chamber-analysis">
+    Chamber-specific patterns
+  </Card>
+  
+  <Card title="API Reference" icon="code" href="/api-reference/pipelines/basic-pipeline">
+    Detailed API documentation
+  </Card>
+</CardGroup>

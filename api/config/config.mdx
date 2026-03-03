@@ -1,0 +1,373 @@
+---
+title: "Config"
+description: "Main configuration class for HeartMAP"
+---
+
+The `Config` class is the main entry point for managing HeartMAP configuration. It aggregates all configuration sections (data, analysis, model, and paths) and provides methods for loading, saving, and customizing settings.
+
+## Class Definition
+
+```python
+from heartmap.config import Config
+```
+
+## Constructor
+
+```python
+Config(
+    data: DataConfig,
+    analysis: AnalysisConfig,
+    model: ModelConfig,
+    paths: PathConfig
+)
+```
+
+### Parameters
+
+<ParamField path="data" type="DataConfig" required>
+  Data processing configuration. See [DataConfig](/api/config/data-config) for details.
+</ParamField>
+
+<ParamField path="analysis" type="AnalysisConfig" required>
+  Analysis configuration. See [AnalysisConfig](/api/config/analysis-config) for details.
+</ParamField>
+
+<ParamField path="model" type="ModelConfig" required>
+  Model configuration. See [ModelConfig](/api/config/model-config) for details.
+</ParamField>
+
+<ParamField path="paths" type="PathConfig" required>
+  Path configuration for data directories and output locations.
+</ParamField>
+
+## Class Methods
+
+### default()
+
+Create a configuration with default values.
+
+```python
+config = Config.default()
+```
+
+**Returns:** `Config` - Configuration object with default settings
+
+**Example:**
+```python
+from heartmap.config import Config
+
+# Create default configuration
+config = Config.default()
+print(config.data.min_genes)  # 200
+print(config.analysis.resolution)  # 0.5
+```
+
+### from_yaml()
+
+Load configuration from a YAML file.
+
+```python
+config = Config.from_yaml(yaml_path)
+```
+
+**Parameters:**
+
+<ParamField path="yaml_path" type="str" required>
+  Path to the YAML configuration file
+</ParamField>
+
+**Returns:** `Config` - Configuration loaded from YAML file
+
+**Example:**
+```python
+from heartmap.config import Config
+
+# Load from YAML file
+config = Config.from_yaml('config.yaml')
+```
+
+### from_json()
+
+Load configuration from a JSON file.
+
+```python
+config = Config.from_json(json_path)
+```
+
+**Parameters:**
+
+<ParamField path="json_path" type="str" required>
+  Path to the JSON configuration file
+</ParamField>
+
+**Returns:** `Config` - Configuration loaded from JSON file
+
+**Example:**
+```python
+from heartmap.config import Config
+
+# Load from JSON file
+config = Config.from_json('config.json')
+```
+
+### from_dict()
+
+Create configuration from a dictionary.
+
+```python
+config = Config.from_dict(config_dict)
+```
+
+**Parameters:**
+
+<ParamField path="config_dict" type="Dict[str, Any]" required>
+  Dictionary containing configuration values with keys: 'data', 'analysis', 'model', 'paths'
+</ParamField>
+
+**Returns:** `Config` - Configuration created from dictionary
+
+**Example:**
+```python
+from heartmap.config import Config
+
+config_dict = {
+    'data': {'min_genes': 300, 'min_cells': 5},
+    'analysis': {'resolution': 0.8},
+    'model': {'use_gpu': True}
+}
+
+config = Config.from_dict(config_dict)
+```
+
+### from_file()
+
+Load configuration from a file (auto-detects YAML or JSON based on extension).
+
+```python
+config = Config.from_file(file_path)
+```
+
+**Parameters:**
+
+<ParamField path="file_path" type="str" required>
+  Path to configuration file (.yaml, .yml, or .json)
+</ParamField>
+
+**Returns:** `Config` - Configuration loaded from file
+
+**Example:**
+```python
+from heartmap.config import Config
+
+# Automatically detects file format
+config = Config.from_file('my_config.yaml')
+```
+
+## Instance Methods
+
+### to_dict()
+
+Convert configuration to a dictionary.
+
+```python
+config_dict = config.to_dict()
+```
+
+**Returns:** `Dict[str, Any]` - Dictionary representation of configuration
+
+**Example:**
+```python
+config = Config.default()
+config_dict = config.to_dict()
+print(config_dict['data']['min_genes'])  # 200
+```
+
+### save_yaml()
+
+Save configuration to a YAML file.
+
+```python
+config.save_yaml(yaml_path)
+```
+
+**Parameters:**
+
+<ParamField path="yaml_path" type="str" required>
+  Path where the YAML file will be saved
+</ParamField>
+
+**Example:**
+```python
+config = Config.default()
+config.data.min_genes = 300
+config.save_yaml('custom_config.yaml')
+```
+
+### save_json()
+
+Save configuration to a JSON file.
+
+```python
+config.save_json(json_path)
+```
+
+**Parameters:**
+
+<ParamField path="json_path" type="str" required>
+  Path where the JSON file will be saved
+</ParamField>
+
+**Example:**
+```python
+config = Config.default()
+config.analysis.resolution = 0.8
+config.save_json('custom_config.json')
+```
+
+### update_paths()
+
+Update all paths relative to a base directory.
+
+```python
+config.update_paths(base_dir)
+```
+
+**Parameters:**
+
+<ParamField path="base_dir" type="str" required>
+  Base directory path. All configured paths will be updated relative to this directory.
+</ParamField>
+
+**Example:**
+```python
+config = Config.default()
+config.update_paths('/home/user/project')
+print(config.paths.data_dir)  # '/home/user/project/data'
+print(config.paths.results_dir)  # '/home/user/project/results'
+```
+
+### create_directories()
+
+Create all configured directories if they don't exist.
+
+```python
+config.create_directories()
+```
+
+**Example:**
+```python
+config = Config.default()
+config.update_paths('/home/user/project')
+config.create_directories()  # Creates data/, results/, figures/, etc.
+```
+
+## Helper Function
+
+### load_config()
+
+Convenience function to load configuration from a file or return default.
+
+```python
+from heartmap.config import load_config
+
+config = load_config(config_path)
+```
+
+**Parameters:**
+
+<ParamField path="config_path" type="Optional[Union[str, Path]]" default="None">
+  Path to configuration file. If None, returns default configuration.
+</ParamField>
+
+**Returns:** `Config` - Configuration object
+
+**Example:**
+```python
+from heartmap.config import load_config
+
+# Load from file
+config = load_config('config.yaml')
+
+# Or get default config
+default_config = load_config()
+```
+
+## Complete Usage Example
+
+```python
+from heartmap.config import Config, load_config
+
+# Method 1: Use default configuration
+config = Config.default()
+
+# Method 2: Load from YAML file
+config = Config.from_yaml('config.yaml')
+
+# Method 3: Use helper function
+config = load_config('config.yaml')
+
+# Customize configuration
+config.data.min_genes = 300
+config.data.min_cells = 5
+config.analysis.resolution = 0.8
+config.model.use_gpu = True
+
+# Update paths for your project
+config.update_paths('/path/to/project')
+
+# Create necessary directories
+config.create_directories()
+
+# Save customized configuration
+config.save_yaml('custom_config.yaml')
+
+# Access configuration values
+print(f"Min genes: {config.data.min_genes}")
+print(f"Resolution: {config.analysis.resolution}")
+print(f"Results dir: {config.paths.results_dir}")
+```
+
+## Default Configuration File
+
+Here's the default `config.yaml` structure:
+
+```yaml
+data:
+  min_genes: 200
+  min_cells: 3
+  max_cells_subset: null
+  max_genes_subset: null
+  target_sum: 10000.0
+  n_top_genes: 2000
+  random_seed: 42
+  test_mode: false
+
+analysis:
+  n_components_pca: 50
+  n_neighbors: 10
+  n_pcs: 40
+  resolution: 0.5
+  n_marker_genes: 25
+  use_leiden: true
+  use_liana: true
+
+model:
+  model_type: "comprehensive"
+  save_intermediate: true
+  use_gpu: false
+  batch_size: null
+  max_memory_gb: null
+
+paths:
+  data_dir: "data"
+  raw_data_dir: "data/raw"
+  processed_data_dir: "data/processed"
+  results_dir: "results"
+  figures_dir: "figures"
+```
+
+## See Also
+
+- [DataConfig](/api/config/data-config) - Data processing configuration
+- [AnalysisConfig](/api/config/analysis-config) - Analysis configuration
+- [ModelConfig](/api/config/model-config) - Model configuration

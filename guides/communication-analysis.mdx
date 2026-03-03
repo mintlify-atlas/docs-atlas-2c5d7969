@@ -1,0 +1,369 @@
+---
+title: 'Cell-Cell Communication Analysis'
+description: 'Advanced ligand-receptor interaction analysis with AdvancedCommunicationPipeline'
+---
+
+# Cell-Cell Communication Analysis
+
+The `AdvancedCommunicationPipeline` analyzes cell-cell communication patterns using ligand-receptor interaction databases and co-expression analysis.
+
+## Overview
+
+This pipeline identifies:
+- Ligand-receptor pairs between cell types
+- Communication hub cells (key signaling centers)
+- Pathway activity scores
+- Cell type-specific communication patterns
+
+<Steps>
+
+### Prerequisites
+
+You need annotated data with cell type labels (from BasicPipeline or your own clustering):
+
+```python
+import scanpy as sc
+
+# Load annotated data
+adata = sc.read_h5ad('results/basic/annotated_data.h5ad')
+
+# Verify cell type annotations exist
+print("Cell type columns:", [col for col in adata.obs.columns 
+                            if col in ['leiden', 'cell_type', 'cluster']])
+```
+
+### Install Communication Features (Optional)
+
+For enhanced ligand-receptor database support:
+
+```bash
+pip install heartmap[communication]
+```
+
+### Configure the Pipeline
+
+```python
+from heartmap import Config
+
+# Load configuration
+config = Config.default()
+
+# Communication-specific settings
+config.analysis.use_liana = True  # Use LIANA database
+config.update_paths('./communication_analysis')
+config.create_directories()
+```
+
+### Run Communication Analysis
+
+```python
+from heartmap.pipelines import AdvancedCommunicationPipeline
+
+# Initialize pipeline
+pipeline = AdvancedCommunicationPipeline(config)
+
+# Run on annotated data
+results = pipeline.run(
+    data_path='results/basic/annotated_data.h5ad',
+    output_dir='results/communication'
+)
+
+print("Communication analysis completed!")
+```
+
+### Explore Communication Scores
+
+Examine cell type-to-cell type communication patterns:
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Extract communication scores
+comm_scores = results['results']['communication_scores']
+
+print(f"Found {len(comm_scores)} communication interactions")
+print("\nTop 10 strongest interactions:")
+top_interactions = comm_scores.nlargest(10, 'communication_score')
+for _, row in top_interactions.iterrows():
+    if 'ligand' in row:
+        print(f"{row['source']} → {row['target']}: "
+              f"{row['ligand']}-{row['receptor']} "
+              f"(score: {row['communication_score']:.3f})")
+    else:
+        print(f"{row['source']} → {row['target']}: "
+              f"{row['communication_score']:.3f}")
+```
+
+### Identify Communication Hubs
+
+Find cell types that act as major signaling centers:
+
+```python
+# Extract hub scores
+hub_scores = results['results']['hub_scores']
+adata = results['adata']
+
+# Calculate mean hub score per cell type
+cluster_col = 'leiden'  # or 'cell_type'
+hub_by_type = adata.obs.groupby(cluster_col)['hub_score'].agg(['mean', 'std'])
+hub_by_type = hub_by_type.sort_values('mean', ascending=False)
+
+print("\nCommunication Hub Scores:")
+for cell_type, scores in hub_by_type.head(10).iterrows():
+    print(f"Cluster {cell_type}: {scores['mean']:.4f} ± {scores['std']:.4f}")
+```
+
+### Visualize Communication Networks
+
+Create heatmaps and network visualizations:
+
+```python
+import scanpy as sc
+
+# Load pre-generated heatmap
+from pathlib import Path
+from matplotlib.image import imread
+
+fig_path = Path('results/communication/figures/communication_heatmap.png')
+if fig_path.exists():
+    img = imread(fig_path)
+    plt.figure(figsize=(12, 10))
+    plt.imshow(img)
+    plt.axis('off')
+    plt.title('Cell-Cell Communication Heatmap')
+    plt.show()
+
+# Visualize hub scores on UMAP
+sc.pl.umap(adata, color='hub_score', 
+           cmap='viridis',
+           title='Communication Hub Scores',
+           save='_hub_scores.png')
+```
+
+### Analyze Specific Pathways
+
+Examine communication in specific biological pathways:
+
+```python
+# Filter for specific ligand-receptor pairs
+if 'ligand' in comm_scores.columns:
+    # Example: VEGF signaling
+    vegf_comm = comm_scores[
+        comm_scores['ligand'].str.contains('VEGF', na=False) |
+        comm_scores['receptor'].str.contains('FLT|KDR', na=False)
+    ]
+    
+    print("\nVEGF Signaling:")
+    for _, row in vegf_comm.iterrows():
+        print(f"  {row['source']} → {row['target']}: "
+              f"{row['ligand']}-{row['receptor']}")
+    
+    # Create pivot table for heatmap
+    if not vegf_comm.empty:
+        pivot = vegf_comm.pivot_table(
+            values='communication_score',
+            index='source',
+            columns='target',
+            aggfunc='sum',
+            fill_value=0
+        )
+        
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(pivot, annot=True, fmt='.2f', cmap='Reds')
+        plt.title('VEGF Signaling Network')
+        plt.tight_layout()
+        plt.savefig('results/communication/vegf_network.png', dpi=300)
+```
+
+### Export Communication Data
+
+```python
+# Save communication scores
+comm_scores.to_csv(
+    'results/communication/communication_scores.csv',
+    index=False
+)
+
+# Save hub scores
+hub_by_type.to_csv(
+    'results/communication/hub_scores_by_type.csv'
+)
+
+print("Communication data exported!")
+```
+
+</Steps>
+
+## Complete Working Example
+
+```python
+from heartmap import Config
+from heartmap.pipelines import AdvancedCommunicationPipeline
+import pandas as pd
+import scanpy as sc
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Configure
+config = Config.default()
+config.analysis.use_liana = True
+config.update_paths('./analysis')
+config.create_directories()
+
+# Run pipeline
+print("=== Running Communication Analysis ===")
+pipeline = AdvancedCommunicationPipeline(config)
+results = pipeline.run(
+    'results/basic/annotated_data.h5ad',
+    'results/communication'
+)
+
+# Extract results
+comm_scores = results['results']['communication_scores']
+hub_scores = results['results']['hub_scores']
+adata = results['adata']
+
+# Analyze communication patterns
+print(f"\nIdentified {len(comm_scores)} interactions")
+
+if 'ligand' in comm_scores.columns:
+    # Count unique L-R pairs
+    n_pairs = comm_scores[['ligand', 'receptor']].drop_duplicates().shape[0]
+    print(f"Using {n_pairs} unique ligand-receptor pairs")
+    
+    # Top communicating cell type pairs
+    top_pairs = comm_scores.groupby(['source', 'target'])['communication_score'].sum()
+    top_pairs = top_pairs.sort_values(ascending=False).head(10)
+    
+    print("\nTop 10 communicating cell type pairs:")
+    for (source, target), score in top_pairs.items():
+        print(f"  {source} → {target}: {score:.3f}")
+
+# Hub analysis
+adata.obs['hub_score'] = hub_scores
+hub_by_cluster = adata.obs.groupby('leiden')['hub_score'].mean().sort_values(ascending=False)
+
+print("\nTop 5 Communication Hubs:")
+for cluster, score in hub_by_cluster.head(5).items():
+    n_cells = (adata.obs['leiden'] == cluster).sum()
+    print(f"  Cluster {cluster}: score={score:.4f} ({n_cells} cells)")
+
+# Visualize
+sc.pl.umap(adata, color=['leiden', 'hub_score'], 
+           ncols=2, save='_communication_overview.png')
+
+print("\nAnalysis complete! Check results/communication/")
+```
+
+## Understanding Communication Scores
+
+The communication score is calculated based on ligand-receptor co-expression:
+
+```python
+# Pseudocode for communication score calculation
+# (actual implementation in AdvancedCommunicationPipeline)
+
+for ligand, receptor in ligand_receptor_pairs:
+    for source_type in cell_types:
+        ligand_expr = mean_expression[source_type][ligand]
+        
+        if ligand_expr > threshold:
+            for target_type in cell_types:
+                receptor_expr = mean_expression[target_type][receptor]
+                
+                if receptor_expr > threshold:
+                    # Geometric mean of expression levels
+                    score = sqrt(ligand_expr * receptor_expr)
+                    communication_scores.append({
+                        'source': source_type,
+                        'target': target_type,
+                        'ligand': ligand,
+                        'receptor': receptor,
+                        'communication_score': score
+                    })
+```
+
+## Ligand-Receptor Database
+
+The pipeline uses a curated database of ligand-receptor pairs:
+
+```python
+from heartmap.data import get_ligand_receptor_pairs
+
+# Get L-R pairs for your data
+lr_pairs = get_ligand_receptor_pairs(
+    adata,
+    resource='consensus',  # or 'omnipath', 'cellphonedb'
+    confidence_threshold=0.7  # Filter by confidence
+)
+
+print(f"Loaded {len(lr_pairs)} ligand-receptor pairs")
+print("\nExample pairs:")
+for ligand, receptor in lr_pairs[:5]:
+    print(f"  {ligand} → {receptor}")
+```
+
+## Output Structure
+
+```
+results/communication/
+├── figures/
+│   ├── communication_heatmap.png    # Cell type communication matrix
+│   ├── hub_scores.png               # Hub scores on UMAP
+│   └── pathway_scores.png           # Pathway activity (if computed)
+└── tables/
+    ├── communication_scores.csv     # All L-R interactions
+    └── hub_scores_by_type.csv       # Hub scores per cell type
+```
+
+## Advanced Options
+
+<ParamField path="resource" type="str" default="consensus">
+  Ligand-receptor database: `consensus`, `omnipath`, `cellphonedb`, `cellchatdb`
+</ParamField>
+
+<ParamField path="confidence_threshold" type="float" default="0.7">
+  Minimum confidence score for L-R pairs (0.0-1.0)
+</ParamField>
+
+<ParamField path="expression_threshold" type="float" default="0.1">
+  Minimum mean expression to consider a gene as "expressed"
+</ParamField>
+
+## Best Practices
+
+<Card title="Input Data Quality" icon="check-circle">
+  - Use well-annotated data with clear cell type labels
+  - Ensure sufficient cells per type (>50 recommended)
+  - Normalize data before analysis
+</Card>
+
+<Card title="Interpretation" icon="lightbulb">
+  - High hub scores indicate cells central to communication
+  - Focus on biologically relevant L-R pairs for your tissue
+  - Validate top interactions with literature
+</Card>
+
+<Card title="Performance" icon="tachometer-alt">
+  - Analysis scales with number of L-R pairs tested
+  - Use `confidence_threshold` to reduce computation
+  - Consider filtering for tissue-specific interactions
+</Card>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Multi-Chamber" icon="heart" href="/guides/multi-chamber-analysis">
+    Chamber-specific communication
+  </Card>
+  
+  <Card title="Visualization" icon="chart-line" href="/guides/visualization">
+    Advanced plotting options
+  </Card>
+  
+  <Card title="API Reference" icon="code" href="/api-reference/pipelines/communication-pipeline">
+    Full API documentation
+  </Card>
+</CardGroup>

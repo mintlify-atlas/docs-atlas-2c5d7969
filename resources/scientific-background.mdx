@@ -1,0 +1,129 @@
+---
+title: Scientific Background
+description: Understanding the biology and research behind HeartMAP
+---
+
+## Overview
+
+HeartMAP (Heart Multi-chamber Analysis Platform) is a computational framework that infers cardiac cell-cell communication networks at chamber resolution through integration of single-cell RNA-seq co-expression patterns and ligand-receptor interaction databases.
+
+## The Biology
+
+### Chamber-Specific Analysis Importance
+
+Understanding cell-cell communication within and between the four distinct cardiac chambers is fundamental to elucidating cardiac function and disease mechanisms. Each chamber exhibits unique cellular and molecular characteristics that reflect specialized physiological roles:
+
+- **Right Atrium (RA)**: Receives deoxygenated blood from systemic circulation
+- **Right Ventricle (RV)**: Pumps deoxygenated blood to the lungs
+- **Left Atrium (LA)**: Receives oxygenated blood from the lungs
+- **Left Ventricle (LV)**: Pumps oxygenated blood to systemic circulation
+
+Existing frameworks for mapping chamber-specific intercellular networks have remained limited, making HeartMAP's chamber-resolution analysis a significant advancement in cardiac biology research.
+
+### Cell-Cell Communication
+
+HeartMAP employs a progressive three-tier analytical approach:
+
+1. **Basic Pipeline Analysis**: Quality control, cell typing, and basic visualization
+2. **Advanced Communication Modelling**: Ligand-receptor interaction analysis
+3. **Multi-Chamber Atlas Construction**: Chamber-specific communication networks
+
+This approach reveals both conserved and chamber-specific signaling pathways, providing insights into cardiac function and disease mechanisms.
+
+## Published Research
+
+<Info>
+  **Published in Computational and Structural Biotechnology Journal (2025)**
+  
+  [Read the full paper](https://www.sciencedirect.com/science/article/pii/S2001037025004866)
+</Info>
+
+### Key Findings
+
+Using a dataset of 287,269 cells from seven healthy human heart donors (Single Cell Portal SCP498), the research identified:
+
+- **Chamber-specific cell populations** with distinct molecular signatures
+- **Communication networks** unique to each cardiac chamber
+- **Therapeutic targets** for chamber-specific interventions
+
+#### Cross-Chamber Correlations
+
+The analysis demonstrated varying levels of similarity between chambers:
+
+- **RV vs LV**: r = 0.985 (highest correlation, reflecting functional similarity)
+- **RA vs LA**: r = 0.960
+- **LA vs LV**: r = 0.870 (lowest correlation, reflecting functional specialization)
+
+#### Communication Hub Analysis
+
+Key signaling centers were identified:
+
+- **Atrial cardiomyocytes**: Hub scores of 0.037 to 0.047
+- **Adipocytes**: Important signaling centers
+
+#### Differential Expression
+
+Over 150 significantly different genes were identified per chamber pair, revealing molecular specialization.
+
+## Clinical Significance
+
+### Precision Cardiology
+
+These findings establish a molecular foundation for precision cardiology approaches, enabling:
+
+- **Chamber-specific therapeutic strategies** that could improve treatment outcomes
+- **Personalized medicine** approaches based on chamber-specific disease mechanisms
+- **Drug development** targeting specific chamber pathways
+- **Biomarker discovery** for chamber-specific disease detection
+
+### Scientific Impact
+
+- **Clinical**: Chamber-specific therapeutic strategies for cardiovascular diseases
+- **Research**: First comprehensive multi-chamber communication atlas
+- **Education**: Accessible cardiac biology analysis platform for researchers and students
+- **Industry**: Production-ready bioinformatics tool for pharmaceutical research
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Pharmaceutical Research" icon="flask">
+    Drug target discovery and safety assessment with chamber-specific resolution
+  </Card>
+  <Card title="Clinical Cardiology" icon="heart-pulse">
+    Precision medicine and understanding disease mechanisms at the chamber level
+  </Card>
+  <Card title="Basic Research" icon="microscope">
+    Cardiac development, evolutionary biology, and chamber specialization studies
+  </Card>
+  <Card title="Computational Biology" icon="chart-network">
+    Method benchmarking and single-cell data integration workflows
+  </Card>
+</CardGroup>
+
+## Citation
+
+If you use HeartMAP in your research, please cite:
+
+**Kgabeng, T., Wang, L., Ngwangwa, H., & Pandelani, T. (2025).** HeartMAP: A Multi-Chamber Spatial Framework for Cardiac Cell-Cell Communication. *Computational and Structural Biotechnology Journal*. https://doi.org/10.1016/J.CSBJ.2025.11.015
+
+### BibTeX
+
+```bibtex
+@article{KGABENG2025,
+title = {HeartMAP: A Multi-Chamber Spatial Framework for Cardiac Cell-Cell Communication},
+journal = {Computational and Structural Biotechnology Journal},
+year = {2025},
+issn = {2001-0370},
+doi = {https://doi.org/10.1016/j.csbj.2025.11.015},
+url = {https://www.sciencedirect.com/science/article/pii/S2001037025004866},
+author = {Tumo Kgabeng and Lulu Wang and Harry Ngwangwa and Thanyani Pandelani},
+keywords = {single-cell RNA-seq, cell-cell communication, cardiac chambers, spatial transcriptomics, therapeutic targets}
+}
+```
+
+## Acknowledgments
+
+- Department of Mechanical, Bioresources and Biomedical Engineering, University of South Africa
+- Department of Engineering, Reykjavik University
+- Single Cell Portal (SCP498) for providing the heart dataset
+- The open-source scientific Python community

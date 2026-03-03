@@ -1,0 +1,554 @@
+---
+title: 'Pipeline Architecture'
+description: 'Understanding HeartMAP analysis pipelines and when to use each'
+icon: 'pipe'
+---
+
+## Pipeline Overview
+
+HeartMAP provides four specialized analysis pipelines, each building on the previous to provide progressively more comprehensive insights. All pipelines inherit from the `BasePipeline` abstract class, ensuring consistent interfaces and behavior.
+
+```python
+from heartmap.pipelines import (
+    BasePipeline,
+    BasicPipeline,
+    AdvancedCommunicationPipeline,
+    MultiChamberPipeline,
+    ComprehensivePipeline
+)
+```
+
+## BasePipeline
+
+The abstract base class that defines the pipeline interface.
+
+### Architecture
+
+```python
+class BasePipeline(ABC):
+    def __init__(self, config: Config):
+        self.config = config
+        self.data_processor = DataProcessor(config)
+        self.visualizer = Visualizer(config)
+        self.exporter = ResultsExporter(config)
+        self.results: Dict[str, Any] = {}
+
+    @abstractmethod
+    def run(self, data_path: str, output_dir: Optional[str] = None) -> Dict[str, Any]:
+        """Run the complete pipeline"""
+        pass
+
+    def save_results(self, output_dir: str) -> None:
+        """Save pipeline results"""
+        pass
+```
+
+### Key Components
+
+<CardGroup cols={4}>
+  <Card title="Data Processor" icon="database">
+    Handles QC, normalization, and preprocessing
+  </Card>
+  <Card title="Visualizer" icon="chart-line">
+    Generates publication-ready figures
+  </Card>
+  <Card title="Results Exporter" icon="file-export">
+    Exports results in multiple formats
+  </Card>
+  <Card title="Config" icon="gear">
+    Centralized configuration management
+  </Card>
+</CardGroup>
+
+---
+
+## BasicPipeline
+
+**Purpose:** Initial data exploration, quality control, and cell type identification
+
+### When to Use
+
+<Check>
+- First-time analysis of a new dataset
+- Need basic cell type annotations
+- Quality control assessment
+- Quick exploratory analysis (5-10 minutes)
+- Limited computational resources
+</Check>
+
+### What It Does
+
+<Steps>
+  <Step title="Load and Process Data">
+    Loads raw H5AD file and applies quality control:
+    - Filters cells (min_genes=200)
+    - Filters genes (min_cells=3)
+    - Normalizes to 10,000 counts per cell
+    - Log transforms expression
+    - Selects 2,000 highly variable genes
+  </Step>
+  
+  <Step title="Dimensionality Reduction">
+    Computes PCA and constructs neighborhood graph:
+    - PCA with 50 components
+    - Neighbors graph (n_neighbors=15, n_pcs=40)
+  </Step>
+  
+  <Step title="Cell Clustering">
+    Uses Leiden algorithm for cell type identification:
+    - Resolution=0.5 (configurable)
+    - Community detection on neighborhood graph
+  </Step>
+  
+  <Step title="Generate Visualizations">
+    Creates essential plots:
+    - UMAP colored by clusters
+    - QC metrics (genes per cell, counts per cell, etc.)
+  </Step>
+</Steps>
+
+### Example Usage
+
+```python
+from heartmap import Config
+from heartmap.pipelines import BasicPipeline
+
+# Initialize pipeline
+config = Config.default()
+pipeline = BasicPipeline(config)
+
+# Run analysis
+results = pipeline.run(
+    data_path='data/raw/heart_data.h5ad',
+    output_dir='results/basic'
+)
+
+# Access results
+adata = results['adata']
+cluster_labels = results['results']['cluster_labels']
+
+print(f"Identified {len(set(cluster_labels))} cell clusters")
+print(f"Total cells analyzed: {adata.n_obs}")
+```
+
+### Output Structure
+
+```
+results/basic/
+├── figures/
+│   ├── umap_clusters.png      # Cluster visualization
+│   └── qc_metrics.png          # Quality control plots
+├── annotated_data.h5ad         # Processed data with clusters
+└── results.json                # Cluster assignments
+```
+
+---
+
+## AdvancedCommunicationPipeline
+
+**Purpose:** Ligand-receptor interaction analysis and communication network mapping
+
+### When to Use
+
+<Check>
+- Investigate cell-cell signaling
+- Identify communication hubs
+- Study pathway-specific interactions
+- Drug target discovery
+- Already have cell type annotations
+</Check>
+
+### What It Does
+
+<Steps>
+  <Step title="Load Annotated Data">
+    Requires pre-clustered data with cell type annotations:
+    - Looks for columns: 'leiden', 'louvain', 'Cluster', 'cell_type', 'celltype'
+    - Must have completed Basic Pipeline or equivalent
+  </Step>
+  
+  <Step title="Load L-R Database">
+    Loads curated ligand-receptor pairs:
+    - LIANA consensus database (preferred)
+    - 100+ cardiac-relevant interactions
+    - Confidence scoring (threshold=0.7)
+  </Step>
+  
+  <Step title="Calculate Communication">
+    Computes cell-type to cell-type communication:
+    - Mean expression per cell type
+    - L-R co-expression scoring
+    - Communication strength = √(ligand_expr × receptor_expr)
+  </Step>
+  
+  <Step title="Hub Score Calculation">
+    Identifies communication hubs:
+    - Hub score = (std × mean) / (variance + 1)
+    - High scores indicate key signaling cells
+  </Step>
+  
+  <Step title="Pathway Analysis">
+    Enrichment for cardiac pathways (optional)
+  </Step>
+</Steps>
+
+### Example Usage
+
+```python
+from heartmap import Config
+from heartmap.pipelines import AdvancedCommunicationPipeline
+
+# Initialize pipeline
+config = Config.default()
+config.analysis.use_liana = True  # Enable LIANA integration
+
+pipeline = AdvancedCommunicationPipeline(config)
+
+# Run on annotated data
+results = pipeline.run(
+    data_path='results/basic/annotated_data.h5ad',
+    output_dir='results/communication'
+)
+
+# Access communication results
+comm_scores = results['results']['communication_scores']
+hub_scores = results['results']['hub_scores']
+
+print(f"Detected {len(comm_scores)} significant interactions")
+print(f"Top communication hub: {hub_scores.idxmax()}")
+```
+
+### Communication Scoring
+
+<CodeGroup>
+```python L-R Based (with LIANA)
+# For each ligand-receptor pair:
+for ligand, receptor in lr_pairs:
+    for source_celltype in celltypes:
+        ligand_expr = mean_expression[source_celltype][ligand]
+        
+        for target_celltype in celltypes:
+            receptor_expr = mean_expression[target_celltype][receptor]
+            
+            if ligand_expr > 0.1 and receptor_expr > 0.1:
+                score = sqrt(ligand_expr * receptor_expr)
+                # Store: source -> target via ligand-receptor
+```
+
+```python Fallback (without LIANA)
+# Basic communication analysis
+for source in celltypes:
+    for target in celltypes:
+        if source != target:
+            # Simplified scoring
+            score = random.uniform(0.1, 0.9)
+```
+</CodeGroup>
+
+### Output Structure
+
+```
+results/communication/
+├── figures/
+│   ├── communication_heatmap.png   # Cell-type interactions
+│   ├── hub_scores.png              # Communication hubs
+│   └── pathway_scores.png          # Pathway enrichment
+├── communication_scores.csv         # Detailed L-R interactions
+├── hub_scores.csv                   # Per-cell hub scores
+└── results.json
+```
+
+---
+
+## MultiChamberPipeline
+
+**Purpose:** Chamber-specific analysis across all four heart chambers
+
+### When to Use
+
+<Check>
+- Compare RA, RV, LA, LV chambers
+- Identify chamber-specific markers
+- Study cross-chamber relationships
+- Understand chamber specialization
+- Data contains chamber annotations
+</Check>
+
+### What It Does
+
+<Steps>
+  <Step title="Load Multi-Chamber Data">
+    Requires data with chamber labels:
+    - Expects 'chamber' or 'location' column
+    - Valid chambers: RA, RV, LA, LV
+  </Step>
+  
+  <Step title="Chamber-Specific Analysis">
+    Analyzes each chamber independently:
+    - Differential expression per chamber
+    - Chamber-specific marker identification
+    - Within-chamber cell type composition
+  </Step>
+  
+  <Step title="Cross-Chamber Correlation">
+    Compares chambers:
+    - Correlation matrices between chambers
+    - Shared vs. unique cell populations
+    - Expression pattern similarities
+  </Step>
+  
+  <Step title="Comparative Visualization">
+    Chamber comparison plots:
+    - Chamber composition bar charts
+    - Marker heatmaps per chamber
+    - Correlation networks
+  </Step>
+</Steps>
+
+### Example Usage
+
+```python
+from heartmap import Config
+from heartmap.pipelines import MultiChamberPipeline
+
+# Initialize pipeline
+config = Config.default()
+pipeline = MultiChamberPipeline(config)
+
+# Run multi-chamber analysis
+results = pipeline.run(
+    data_path='data/raw/multi_chamber_data.h5ad',
+    output_dir='results/multi_chamber'
+)
+
+# Access chamber-specific results
+chamber_markers = results['results']['chamber_markers']
+correlations = results['results']['cross_chamber_correlations']
+
+print(f"Chamber-specific markers:")
+for chamber, markers in chamber_markers.items():
+    print(f"  {chamber}: {len(markers)} unique markers")
+```
+
+### Known Chamber Markers
+
+<Tabs>
+  <Tab title="RA - Right Atrium">
+    **Top Markers:** NPPA, MIR100HG, MYL7, MYL4, PDE4D
+    
+    **Characteristics:**
+    - 28.4% of total heart cells
+    - Natriuretic peptide signaling
+    - Atrial-specific contractile proteins
+  </Tab>
+  
+  <Tab title="RV - Right Ventricle">
+    **Top Markers:** NEAT1, MYH7, FHL2, C15orf41, PCDH7
+    
+    **Characteristics:**
+    - 18.2% of total heart cells
+    - Beta-myosin heavy chain expression
+    - Pulmonary circulation adaptation
+  </Tab>
+  
+  <Tab title="LA - Left Atrium">
+    **Top Markers:** NPPA, ELN, MYL7, EBF2, RORA
+    
+    **Characteristics:**
+    - 26.4% of total heart cells
+    - Elastin for compliance
+    - Transcriptional regulation (RORA)
+  </Tab>
+  
+  <Tab title="LV - Left Ventricle">
+    **Top Markers:** CD36, LINC00486, FHL2, RP11-532N4.2, MYH7
+    
+    **Characteristics:**
+    - 27.0% of total heart cells
+    - Fatty acid metabolism (CD36)
+    - Systemic circulation workload
+  </Tab>
+</Tabs>
+
+### Output Structure
+
+```
+results/multi_chamber/
+├── figures/
+│   ├── chamber_composition.png     # Cell distribution
+│   ├── chamber_markers.png         # Marker heatmaps
+│   └── chamber_correlations.png    # Cross-chamber analysis
+├── chamber_markers.csv              # Per-chamber markers
+├── correlations.csv                 # Chamber similarity matrix
+└── results.json
+```
+
+---
+
+## ComprehensivePipeline
+
+**Purpose:** Complete HeartMAP analysis combining all features
+
+### When to Use
+
+<Check>
+- Need complete analysis in one run
+- Publication-quality comprehensive results
+- Automated HTML report generation
+- Final production analysis
+</Check>
+
+### What It Does
+
+Combines **Basic + Communication + Multi-Chamber** into a unified workflow:
+
+<Steps>
+  <Step title="Complete Data Processing">
+    Full preprocessing pipeline:
+    - All BasicPipeline steps
+    - PCA, neighbors, UMAP
+    - Leiden clustering
+  </Step>
+  
+  <Step title="Integrated Analysis">
+    Combines all analysis types:
+    - Cell type annotation
+    - Communication networks
+    - Chamber-specific patterns (if chamber data available)
+  </Step>
+  
+  <Step title="Comprehensive Dashboard">
+    Multi-panel visualization:
+    - Integrated figure panels
+    - Side-by-side comparisons
+    - Summary statistics
+  </Step>
+  
+  <Step title="Automated Report">
+    Generates HTML report:
+    - Analysis summary
+    - All figures embedded
+    - Key findings highlighted
+  </Step>
+</Steps>
+
+### Example Usage
+
+```python
+from heartmap import Config
+from heartmap.pipelines import ComprehensivePipeline
+
+# Full configuration
+config = Config.default()
+config.data.max_cells_subset = 50000
+config.data.max_genes_subset = 5000
+config.analysis.use_liana = True
+config.model.save_intermediate = True
+
+# Run comprehensive analysis
+pipeline = ComprehensivePipeline(config)
+results = pipeline.run(
+    data_path='data/raw/heart_data.h5ad',
+    output_dir='results/comprehensive'
+)
+
+# Results include everything
+print("Analysis components:")
+for component in results['results'].keys():
+    print(f"  - {component}")
+```
+
+### Output Structure
+
+```
+results/comprehensive/
+├── figures/
+│   ├── comprehensive_dashboard.png  # Multi-panel overview
+│   ├── umap_clusters.png
+│   ├── communication_heatmap.png
+│   ├── chamber_composition.png
+│   └── hub_scores.png
+├── data/
+│   └── heartmap_complete.h5ad       # Fully annotated data
+├── reports/
+│   └── comprehensive_report.html    # Automated HTML report
+├── annotation/
+│   └── cluster_labels.csv
+├── communication/
+│   ├── communication_scores.csv
+│   └── hub_scores.csv
+├── multi_chamber/
+│   ├── chamber_markers.csv
+│   └── correlations.csv
+└── results.json
+```
+
+---
+
+## Pipeline Comparison
+
+| Feature | Basic | Communication | Multi-Chamber | Comprehensive |
+|---------|-------|---------------|---------------|---------------|
+| **QC & Preprocessing** | ✅ | ❌ | ❌ | ✅ |
+| **Cell Clustering** | ✅ | ❌ | ❌ | ✅ |
+| **L-R Analysis** | ❌ | ✅ | ❌ | ✅ |
+| **Hub Detection** | ❌ | ✅ | ❌ | ✅ |
+| **Chamber Markers** | ❌ | ❌ | ✅ | ✅ |
+| **Cross-Chamber Correlations** | ❌ | ❌ | ✅ | ✅ |
+| **Comprehensive Report** | ❌ | ❌ | ❌ | ✅ |
+| **Runtime (typical)** | 5-10 min | 10-15 min | 15-20 min | 20-30 min |
+| **Memory (typical)** | Low | Medium | Medium | High |
+| **Input Requirements** | Raw H5AD | Annotated H5AD | Multi-chamber H5AD | Raw H5AD |
+
+## Pipeline Selection Guide
+
+<CardGroup cols={2}>
+  <Card title="I have raw data" icon="1">
+    Start with **BasicPipeline** for initial exploration, then progress to other pipelines as needed.
+  </Card>
+  
+  <Card title="I need cell communication" icon="2">
+    Use **BasicPipeline** first for annotations, then **AdvancedCommunicationPipeline**.
+  </Card>
+  
+  <Card title="I have chamber labels" icon="3">
+    Use **MultiChamberPipeline** after basic annotation to identify chamber-specific patterns.
+  </Card>
+  
+  <Card title="I want everything" icon="4">
+    Use **ComprehensivePipeline** for complete analysis in a single run.
+  </Card>
+</CardGroup>
+
+## Custom Pipeline Workflows
+
+You can chain pipelines for custom workflows:
+
+```python
+from heartmap import Config
+from heartmap.pipelines import BasicPipeline, AdvancedCommunicationPipeline
+
+config = Config.default()
+
+# Step 1: Basic analysis
+basic = BasicPipeline(config)
+basic_results = basic.run('raw_data.h5ad', 'results/basic')
+
+# Step 2: Communication analysis on annotated data
+comm = AdvancedCommunicationPipeline(config)
+comm_results = comm.run('results/basic/annotated_data.h5ad', 'results/comm')
+
+print("Custom pipeline complete!")
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Configuration" icon="gear" href="/concepts/configuration">
+    Learn how to customize pipeline behavior
+  </Card>
+  
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Run your first analysis
+  </Card>
+</CardGroup>

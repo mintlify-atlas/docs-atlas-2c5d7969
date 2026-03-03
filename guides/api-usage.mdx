@@ -1,0 +1,624 @@
+---
+title: 'REST API Usage'
+description: 'Guide to using the HeartMAP REST API for programmatic access'
+---
+
+# HeartMAP REST API
+
+HeartMAP provides a REST API built with FastAPI for integrating cardiac analysis into web applications and services.
+
+## Installation
+
+Install with API dependencies:
+
+```bash
+pip install heartmap[api]
+
+# Or with all features
+pip install heartmap[all]
+```
+
+## Starting the API Server
+
+### Quick Start
+
+```python
+from heartmap.api import create_api
+
+# Create API instance
+api = create_api()
+
+# Run server
+api.run(host='0.0.0.0', port=8000)
+```
+
+Or from command line:
+
+```bash
+python -m heartmap.api
+```
+
+The API will be available at:
+- **Base URL**: `http://localhost:8000`
+- **API Docs**: `http://localhost:8000/docs` (Swagger UI)
+- **ReDoc**: `http://localhost:8000/redoc`
+
+### Custom Configuration
+
+```python
+from heartmap import Config
+from heartmap.api import HeartMapAPI
+
+# Load custom config
+config = Config.from_yaml('config.yaml')
+
+# Create API with config
+api = HeartMapAPI(config)
+
+# Run with custom settings
+api.run(
+    host='0.0.0.0',
+    port=8080,
+    debug=True  # Enable debug mode
+)
+```
+
+## API Endpoints
+
+### Health Check
+
+**GET** `/health`
+
+Check if the API is running:
+
+```bash
+curl http://localhost:8000/health
+```
+
+Response:
+```json
+{
+  "status": "healthy"
+}
+```
+
+### Root Endpoint
+
+**GET** `/`
+
+Get API information:
+
+```bash
+curl http://localhost:8000/
+```
+
+Response:
+```json
+{
+  "message": "HeartMAP API",
+  "version": "1.0.0"
+}
+```
+
+### Analyze Data
+
+**POST** `/analyze`
+
+Perform single-cell analysis on uploaded data.
+
+**Request:**
+- **Method**: POST
+- **Content-Type**: multipart/form-data
+- **Parameters**:
+  - `file`: Single-cell data file (.h5ad)
+  - `analysis_type`: Type of analysis (optional, default: "comprehensive")
+  - `config_overrides`: JSON config overrides (optional)
+
+**Python Example:**
+
+```python
+import requests
+
+# Prepare request
+url = 'http://localhost:8000/analyze'
+
+files = {
+    'file': open('data/heart_data.h5ad', 'rb')
+}
+
+data = {
+    'analysis_type': 'comprehensive',
+    'config_overrides': '{}'
+}
+
+# Send request
+response = requests.post(url, files=files, data=data)
+
+# Check response
+if response.status_code == 200:
+    results = response.json()
+    print("Analysis status:", results['status'])
+    print("Message:", results['message'])
+    print("Results:", results['results'])
+else:
+    print("Error:", response.text)
+```
+
+**cURL Example:**
+
+```bash
+curl -X POST "http://localhost:8000/analyze" \
+  -H "Content-Type: multipart/form-data" \
+  -F "file=@data/heart_data.h5ad" \
+  -F "analysis_type=comprehensive"
+```
+
+**Response:**
+
+```json
+{
+  "status": "success",
+  "message": "Analysis completed successfully",
+  "results": {
+    "summary": {
+      "n_cells": 25000,
+      "analysis_completed": true
+    },
+    "annotation_summary": {
+      "n_clusters": 8
+    },
+    "communication_summary": {
+      "n_interactions": 245
+    }
+  },
+  "output_files": null
+}
+```
+
+### List Available Models
+
+**GET** `/models`
+
+Get list of available analysis types:
+
+```bash
+curl http://localhost:8000/models
+```
+
+Response:
+```json
+{
+  "models": [
+    "basic",
+    "advanced_communication",
+    "multi_chamber",
+    "comprehensive"
+  ]
+}
+```
+
+### Get Configuration
+
+**GET** `/config`
+
+Retrieve current server configuration:
+
+```bash
+curl http://localhost:8000/config
+```
+
+Response:
+```json
+{
+  "data": {
+    "min_genes": 200,
+    "min_cells": 3,
+    "max_cells_subset": 50000,
+    "target_sum": 10000.0,
+    "n_top_genes": 2000,
+    "random_seed": 42,
+    "test_mode": false
+  },
+  "analysis": {
+    "n_components_pca": 50,
+    "n_neighbors": 10,
+    "n_pcs": 40,
+    "resolution": 0.5,
+    "use_leiden": true,
+    "use_liana": true
+  },
+  "model": {
+    "model_type": "comprehensive",
+    "save_intermediate": true,
+    "use_gpu": false
+  }
+}
+```
+
+### Update Configuration
+
+**POST** `/config`
+
+Update server configuration:
+
+```python
+import requests
+import json
+
+url = 'http://localhost:8000/config'
+
+new_config = {
+    "data": {
+        "max_cells_subset": 30000,
+        "resolution": 0.7
+    }
+}
+
+response = requests.post(
+    url,
+    headers={'Content-Type': 'application/json'},
+    data=json.dumps(new_config)
+)
+
+print(response.json())
+```
+
+Response:
+```json
+{
+  "status": "success",
+  "message": "Configuration updated"
+}
+```
+
+## Request/Response Models
+
+### AnalysisRequest
+
+```python
+from pydantic import BaseModel
+from typing import Dict, Any, Optional
+
+class AnalysisRequest(BaseModel):
+    analysis_type: str = "comprehensive"  # basic, advanced, multi_chamber, comprehensive
+    config_overrides: Optional[Dict[str, Any]] = None
+    output_format: str = "json"  # json, csv, h5ad
+```
+
+### AnalysisResponse
+
+```python
+class AnalysisResponse(BaseModel):
+    status: str  # success or failure
+    message: str
+    results: Optional[Dict[str, Any]] = None
+    output_files: Optional[List[str]] = None
+```
+
+## Complete Examples
+
+### Example 1: Basic Analysis
+
+```python
+import requests
+import json
+from pathlib import Path
+
+def run_heartmap_analysis(data_file, analysis_type='basic'):
+    """
+    Submit analysis to HeartMAP API
+    """
+    url = 'http://localhost:8000/analyze'
+    
+    # Prepare files
+    files = {'file': open(data_file, 'rb')}
+    
+    # Prepare request data
+    data = {'analysis_type': analysis_type}
+    
+    # Send request
+    print(f"Submitting {data_file} for {analysis_type} analysis...")
+    response = requests.post(url, files=files, data=data)
+    
+    # Handle response
+    if response.status_code == 200:
+        results = response.json()
+        print(f"✓ Analysis completed: {results['message']}")
+        
+        if results.get('results'):
+            summary = results['results'].get('summary', {})
+            print(f"  Cells analyzed: {summary.get('n_cells', 'N/A')}")
+        
+        return results
+    else:
+        print(f"✗ Error: {response.status_code}")
+        print(response.text)
+        return None
+
+# Run analysis
+results = run_heartmap_analysis('data/heart_data.h5ad', 'basic')
+```
+
+### Example 2: With Configuration Overrides
+
+```python
+import requests
+import json
+
+def run_custom_analysis(data_file, max_cells=30000, resolution=0.7):
+    """
+    Run analysis with custom parameters
+    """
+    url = 'http://localhost:8000/analyze'
+    
+    # Custom configuration
+    config_overrides = {
+        'data': {
+            'max_cells_subset': max_cells
+        },
+        'analysis': {
+            'resolution': resolution
+        }
+    }
+    
+    # Prepare request
+    files = {'file': open(data_file, 'rb')}
+    data = {
+        'analysis_type': 'comprehensive',
+        'config_overrides': json.dumps(config_overrides)
+    }
+    
+    # Send request
+    print(f"Running custom analysis (max_cells={max_cells}, res={resolution})...")
+    response = requests.post(url, files=files, data=data)
+    
+    if response.status_code == 200:
+        results = response.json()
+        print(f"✓ {results['message']}")
+        return results
+    else:
+        print(f"✗ Failed: {response.text}")
+        return None
+
+# Run with custom settings
+results = run_custom_analysis(
+    'data/large_dataset.h5ad',
+    max_cells=20000,
+    resolution=0.5
+)
+```
+
+### Example 3: Batch Processing
+
+```python
+import requests
+from pathlib import Path
+import time
+
+def batch_analyze(data_dir, analysis_type='comprehensive'):
+    """
+    Analyze multiple datasets via API
+    """
+    url = 'http://localhost:8000/analyze'
+    data_files = list(Path(data_dir).glob('*.h5ad'))
+    
+    results_summary = []
+    
+    for data_file in data_files:
+        print(f"\nProcessing: {data_file.name}")
+        print("="*50)
+        
+        # Submit analysis
+        files = {'file': open(data_file, 'rb')}
+        data = {'analysis_type': analysis_type}
+        
+        start_time = time.time()
+        response = requests.post(url, files=files, data=data)
+        elapsed = time.time() - start_time
+        
+        # Record results
+        if response.status_code == 200:
+            result = response.json()
+            summary = result.get('results', {}).get('summary', {})
+            
+            results_summary.append({
+                'file': data_file.name,
+                'status': 'success',
+                'n_cells': summary.get('n_cells', 0),
+                'time_seconds': elapsed
+            })
+            
+            print(f"✓ Completed in {elapsed:.1f}s")
+        else:
+            results_summary.append({
+                'file': data_file.name,
+                'status': 'failed',
+                'error': response.text,
+                'time_seconds': elapsed
+            })
+            print(f"✗ Failed: {response.text}")
+    
+    # Summary
+    print("\n" + "="*50)
+    print("BATCH PROCESSING SUMMARY")
+    print("="*50)
+    
+    for summary in results_summary:
+        status_symbol = "✓" if summary['status'] == 'success' else "✗"
+        print(f"{status_symbol} {summary['file']}: {summary['status']} "
+              f"({summary.get('time_seconds', 0):.1f}s)")
+    
+    return results_summary
+
+# Process all datasets in directory
+results = batch_analyze('data/raw/', analysis_type='basic')
+```
+
+### Example 4: Web Application Integration
+
+```python
+from flask import Flask, request, jsonify
+import requests
+import tempfile
+import os
+
+app = Flask(__name__)
+HEARTMAP_API_URL = 'http://localhost:8000'
+
+@app.route('/upload', methods=['POST'])
+def upload_and_analyze():
+    """
+    Web endpoint that accepts file uploads and forwards to HeartMAP API
+    """
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+    
+    file = request.files['file']
+    analysis_type = request.form.get('analysis_type', 'comprehensive')
+    
+    # Save uploaded file temporarily
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.h5ad') as tmp:
+        file.save(tmp.name)
+        tmp_path = tmp.name
+    
+    try:
+        # Forward to HeartMAP API
+        with open(tmp_path, 'rb') as f:
+            files = {'file': f}
+            data = {'analysis_type': analysis_type}
+            
+            response = requests.post(
+                f'{HEARTMAP_API_URL}/analyze',
+                files=files,
+                data=data
+            )
+        
+        # Return results
+        return jsonify(response.json()), response.status_code
+    
+    finally:
+        # Cleanup
+        os.unlink(tmp_path)
+
+if __name__ == '__main__':
+    app.run(port=5000)
+```
+
+## Production Deployment
+
+### Using Uvicorn (Recommended)
+
+```bash
+# Install uvicorn
+pip install uvicorn[standard]
+
+# Run with multiple workers
+uvicorn heartmap.api:app \
+  --host 0.0.0.0 \
+  --port 8000 \
+  --workers 4 \
+  --log-level info
+```
+
+### Using Gunicorn
+
+```bash
+# Install gunicorn
+pip install gunicorn
+
+# Run with uvicorn workers
+gunicorn heartmap.api:app \
+  --workers 4 \
+  --worker-class uvicorn.workers.UvicornWorker \
+  --bind 0.0.0.0:8000 \
+  --timeout 300
+```
+
+### Docker Deployment
+
+Create `Dockerfile`:
+
+```dockerfile
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# Install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application
+COPY . .
+
+# Expose port
+EXPOSE 8000
+
+# Run API
+CMD ["uvicorn", "heartmap.api:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+Build and run:
+
+```bash
+docker build -t heartmap-api .
+docker run -p 8000:8000 heartmap-api
+```
+
+## Authentication
+
+For production, add authentication:
+
+```python
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
+security = HTTPBearer()
+
+def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+    # Implement your token verification logic
+    if token != "your-secret-token":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials"
+        )
+    return token
+
+@app.post("/analyze")
+async def analyze_with_auth(token: str = Depends(verify_token)):
+    # Protected endpoint
+    pass
+```
+
+## Error Handling
+
+API returns standard HTTP error codes:
+
+- **200**: Success
+- **400**: Bad Request (invalid input)
+- **401**: Unauthorized
+- **500**: Internal Server Error
+
+Example error response:
+
+```json
+{
+  "detail": "Error message describing what went wrong"
+}
+```
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="CLI Usage" icon="terminal" href="/guides/cli-usage">
+    Command-line interface
+  </Card>
+  
+  <Card title="API Reference" icon="code" href="/api-reference/api/heartmap-api">
+    Full API documentation
+  </Card>
+  
+  <Card title="Configuration" icon="cog" href="/api-reference/config">
+    Config options
+  </Card>
+</CardGroup>

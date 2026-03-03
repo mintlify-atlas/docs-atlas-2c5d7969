@@ -1,0 +1,199 @@
+---
+title: 'AdvancedCommunicationPipeline'
+description: 'Advanced cell-cell communication analysis pipeline with ligand-receptor database integration'
+---
+
+## Overview
+
+The `AdvancedCommunicationPipeline` class performs sophisticated cell-cell communication analysis using ligand-receptor (L-R) interaction databases. It integrates with LIANA-compatible resources to identify signaling pathways between cell types.
+
+**Inheritance:** `BasePipeline`
+
+**Source:** `heartmap.pipelines.AdvancedCommunicationPipeline` (src/heartmap/pipelines/__init__.py:113)
+
+## Constructor
+
+```python
+AdvancedCommunicationPipeline(config: Config)
+```
+
+<ParamField path="config" type="Config" required>
+  Configuration object containing analysis parameters.
+</ParamField>
+
+### Attributes
+
+Inherited from `BasePipeline`:
+- `config` (Config): Configuration object
+- `data_processor` (DataProcessor): Data processing handler
+- `visualizer` (Visualizer): Visualization handler
+- `exporter` (ResultsExporter): Results export handler
+- `results` (Dict[str, Any]): Dictionary storing pipeline results
+
+Class-specific:
+- `lr_available` (bool): Whether ligand-receptor database is available
+- `get_lr_pairs` (callable): Function to retrieve L-R pairs from database
+
+## Methods
+
+### run()
+
+Run the advanced communication analysis pipeline on annotated single-cell data.
+
+```python
+def run(data_path: str, output_dir: Optional[str] = None) -> Dict[str, Any]
+```
+
+<ParamField path="data_path" type="str" required>
+  Path to annotated H5AD file. Must contain cell type annotations in one of these columns: 'leiden', 'louvain', 'Cluster', 'cluster', 'cell_type', 'celltype'.
+</ParamField>
+
+<ParamField path="output_dir" type="Optional[str]">
+  Directory to save communication results and visualizations. If None, results are returned but not saved.
+</ParamField>
+
+<ResponseField name="return" type="Dict[str, Any]">
+  Dictionary containing pipeline results:
+  
+  <ResponseField name="adata" type="AnnData">
+    Annotated data object (unchanged from input)
+  </ResponseField>
+  
+  <ResponseField name="results" type="Dict[str, Any]">
+    Communication analysis results
+    
+    <ResponseField name="communication_scores" type="pd.DataFrame">
+      DataFrame with columns:
+      - `source` (str): Source cell type expressing ligand
+      - `target` (str): Target cell type expressing receptor
+      - `ligand` (str): Ligand gene name
+      - `receptor` (str): Receptor gene name
+      - `communication_score` (float): Communication strength (geometric mean of expression)
+    </ResponseField>
+    
+    <ResponseField name="hub_scores" type="pd.Series">
+      Hub scores for each cell (index matches adata.obs.index)
+    </ResponseField>
+    
+    <ResponseField name="pathway_scores" type="pd.DataFrame">
+      Pathway enrichment scores (currently placeholder)
+    </ResponseField>
+  </ResponseField>
+</ResponseField>
+
+**Raises:**
+- `ImportError`: If required dependencies are not available
+- `ValueError`: If input data lacks cell type annotation columns
+
+**Pipeline Steps:**
+
+1. **Data Loading** - Reads annotated H5AD file
+2. **Annotation Detection** - Identifies cell type column (leiden/Cluster/cell_type/etc.)
+3. **L-R Database Integration** - Loads ligand-receptor pairs from consensus database (confidence ≥ 0.7)
+4. **Communication Analysis** - Calculates L-R co-expression scores between cell types
+5. **Hub Score Calculation** - Identifies communication hub cell types
+6. **Visualization** - Generates heatmaps and network plots (if output_dir provided)
+
+### _calculate_lr_communication()
+
+**Internal method.** Calculate communication scores based on ligand-receptor co-expression.
+
+```python
+def _calculate_lr_communication(
+    adata, 
+    cluster_col: str, 
+    ligand_receptor_pairs: List[Tuple[str, str]]
+) -> pd.DataFrame
+```
+
+Computes geometric mean of ligand expression in source cells and receptor expression in target cells for each L-R pair. Only pairs with expression > 0.1 in both source and target are included.
+
+### _basic_communication_analysis()
+
+**Internal method.** Fallback communication analysis when L-R database is unavailable.
+
+```python
+def _basic_communication_analysis(adata, cluster_col: str) -> pd.DataFrame
+```
+
+### _calculate_hub_scores()
+
+**Internal method.** Calculate hub scores per cell type.
+
+```python
+def _calculate_hub_scores(adata, cluster_col: str) -> pd.Series
+```
+
+Computes hub score as `(std * mean) / (variance + 1)` for each cell type's expression profile.
+
+## Usage Example
+
+```python
+from heartmap.config import Config
+from heartmap.pipelines import AdvancedCommunicationPipeline
+
+# Create configuration
+config = Config(
+    data_path="data/cardiac_tissue.h5ad"
+)
+
+# Initialize pipeline
+pipeline = AdvancedCommunicationPipeline(config)
+
+# Run communication analysis on annotated data
+results = pipeline.run(
+    data_path="results/basic_analysis/annotated_data.h5ad",
+    output_dir="results/communication"
+)
+
+# Access communication scores
+comm_df = results['results']['communication_scores']
+
+# Find top communication pairs
+top_communications = comm_df.nlargest(10, 'communication_score')
+for _, row in top_communications.iterrows():
+    print(f"{row['source']} -> {row['target']}: "
+          f"{row['ligand']}-{row['receptor']} "
+          f"(score: {row['communication_score']:.3f})")
+
+# Access hub scores
+hub_scores = results['results']['hub_scores']
+print(f"Mean hub score: {hub_scores.mean():.3f}")
+```
+
+## L-R Database Integration
+
+The pipeline automatically attempts to load ligand-receptor pairs from the consensus database with:
+
+- **Resource:** `'consensus'` - Aggregated from multiple curated databases
+- **Confidence threshold:** `0.7` - Only high-confidence interactions
+- **Filtering:** Expression threshold of 0.1 for both ligand and receptor
+
+If the L-R database is unavailable, install with:
+
+```bash
+pip install heartmap[communication]
+```
+
+## Output Files
+
+When `output_dir` is specified, the pipeline generates:
+
+- `figures/communication_heatmap.png` - Cell type communication matrix
+- `figures/hub_scores.png` - Hub score visualization per cell type
+- `figures/pathway_scores.png` - Pathway enrichment plots
+- Results exported via `ResultsExporter`
+
+## Related Documentation
+
+<Card title="BasicPipeline" icon="play" href="/api/pipelines/basic-pipeline">
+  Run basic clustering before communication analysis
+</Card>
+
+<Card title="Visualizer" icon="chart-line" href="/api/utils/visualizer">
+  Visualization utilities for communication networks
+</Card>
+
+<Card title="Communication Analysis Guide" icon="network-wired" href="/guides/communication">
+  Detailed guide on cell-cell communication analysis
+</Card>

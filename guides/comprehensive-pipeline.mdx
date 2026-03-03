@@ -1,0 +1,528 @@
+---
+title: 'Comprehensive Analysis Pipeline'
+description: 'Complete end-to-end analysis with ComprehensivePipeline'
+---
+
+# Comprehensive HeartMAP Analysis
+
+The `ComprehensivePipeline` combines all HeartMAP analysis components into a single integrated workflow: basic analysis, communication analysis, and multi-chamber analysis.
+
+## Overview
+
+This pipeline performs:
+- Complete data preprocessing and QC
+- Cell type annotation and clustering
+- Cell-cell communication analysis
+- Multi-chamber pattern analysis
+- Comprehensive visualization dashboard
+- Automated report generation
+
+<Steps>
+
+### Install HeartMAP
+
+```bash
+# Install with all features
+pip install heartmap[all]
+```
+
+### Prepare Your Data
+
+Start with raw single-cell data:
+
+```python
+import scanpy as sc
+
+# Load your data
+adata = sc.read_h5ad('data/raw/heart_data.h5ad')
+# or
+adata = sc.read_10x_h5('data/raw/filtered_feature_bc_matrix.h5')
+
+print(f"Loaded: {adata.n_obs:,} cells × {adata.n_vars:,} genes")
+```
+
+### Configure the Pipeline
+
+Create a comprehensive configuration:
+
+```python
+from heartmap import Config
+
+# Load default config
+config = Config.default()
+
+# Customize for your system
+config.data.min_genes = 200
+config.data.min_cells = 3
+config.data.max_cells_subset = 50000  # Adjust for your RAM
+config.data.n_top_genes = 2000
+config.analysis.resolution = 0.5
+config.analysis.use_liana = True  # Enable L-R database
+
+# Set paths
+config.update_paths('./heartmap_analysis')
+config.create_directories()
+
+print("Configuration ready!")
+```
+
+### Run Complete Analysis
+
+```python
+from heartmap.pipelines import ComprehensivePipeline
+
+print("=== Running Comprehensive HeartMAP Pipeline ===")
+
+# Initialize pipeline
+pipeline = ComprehensivePipeline(config)
+
+# Run complete analysis
+results = pipeline.run(
+    data_path='data/raw/heart_data.h5ad',
+    output_dir='results/comprehensive'
+)
+
+print("\nComprehensive HeartMAP pipeline completed!")
+```
+
+### Explore Results
+
+The pipeline returns integrated results:
+
+```python
+import pandas as pd
+
+# Extract components
+adata = results['adata']
+analysis_results = results['results']
+
+# Overview
+print(f"\nProcessed: {adata.n_obs:,} cells × {adata.n_vars:,} genes")
+
+# Cell type annotation
+if 'annotation' in analysis_results:
+    n_clusters = len(adata.obs['leiden'].unique())
+    print(f"Identified {n_clusters} cell type clusters")
+    
+    cluster_counts = adata.obs['leiden'].value_counts()
+    print("\nTop 5 cell types:")
+    for cluster, count in cluster_counts.head(5).items():
+        pct = 100 * count / adata.n_obs
+        print(f"  Cluster {cluster}: {count:,} cells ({pct:.1f}%)")
+
+# Communication analysis
+if 'communication' in analysis_results:
+    comm_res = analysis_results['communication']
+    if 'hub_scores' in comm_res:
+        hub_scores = comm_res['hub_scores']
+        print(f"\nHub scores computed for {len(hub_scores)} cells")
+
+# Multi-chamber analysis
+if 'chamber' in adata.obs.columns:
+    print("\nChamber distribution:")
+    for chamber, count in adata.obs['chamber'].value_counts().items():
+        pct = 100 * count / adata.n_obs
+        print(f"  {chamber}: {count:,} cells ({pct:.1f}%)")
+```
+
+### View Comprehensive Dashboard
+
+The pipeline generates an integrated visualization:
+
+```python
+from pathlib import Path
+import matplotlib.pyplot as plt
+from matplotlib.image import imread
+
+# Load dashboard
+dashboard_path = Path('results/comprehensive/figures/comprehensive_dashboard.png')
+if dashboard_path.exists():
+    img = imread(dashboard_path)
+    plt.figure(figsize=(20, 16))
+    plt.imshow(img)
+    plt.axis('off')
+    plt.title('HeartMAP Comprehensive Dashboard', fontsize=20)
+    plt.tight_layout()
+    plt.show()
+else:
+    print("Dashboard will be generated after analysis completes")
+```
+
+### Read Analysis Report
+
+An automated markdown report is generated:
+
+```python
+report_path = Path('results/comprehensive/analysis_report.md')
+if report_path.exists():
+    with open(report_path, 'r') as f:
+        print(f.read())
+```
+
+### Access Individual Components
+
+All intermediate results are saved:
+
+```python
+import scanpy as sc
+
+# Load complete processed data
+adata_complete = sc.read_h5ad('results/comprehensive/heartmap_complete.h5ad')
+
+print("Available metadata:")
+print(adata_complete.obs.columns.tolist())
+
+print("\nAvailable embeddings:")
+print(list(adata_complete.obsm.keys()))
+
+print("\nAvailable analyses:")
+print(list(adata_complete.uns.keys()))
+```
+
+### Perform Downstream Analysis
+
+Use the processed data for custom analyses:
+
+```python
+import scanpy as sc
+import matplotlib.pyplot as plt
+
+# Differential expression between chambers
+if 'chamber' in adata.obs.columns:
+    sc.tl.rank_genes_groups(
+        adata,
+        groupby='chamber',
+        method='wilcoxon',
+        key_added='chamber_de'
+    )
+    
+    # Plot top DE genes
+    sc.pl.rank_genes_groups_heatmap(
+        adata,
+        key='chamber_de',
+        n_genes=10,
+        groupby='chamber',
+        show=False
+    )
+    plt.savefig('results/comprehensive/chamber_de_heatmap.png', 
+                dpi=300, bbox_inches='tight')
+    plt.close()
+
+# Find cell type markers
+sc.tl.rank_genes_groups(
+    adata,
+    groupby='leiden',
+    method='wilcoxon',
+    key_added='cluster_markers'
+)
+
+# Export markers
+for cluster in adata.obs['leiden'].unique():
+    markers = sc.get.rank_genes_groups_df(
+        adata,
+        group=cluster,
+        key='cluster_markers'
+    ).head(50)
+    markers.to_csv(
+        f'results/comprehensive/markers_cluster_{cluster}.csv',
+        index=False
+    )
+
+print("Downstream analysis complete!")
+```
+
+</Steps>
+
+## Complete Working Example
+
+```python
+from heartmap import Config
+from heartmap.pipelines import ComprehensivePipeline
+import scanpy as sc
+import pandas as pd
+from pathlib import Path
+
+# ========================================
+# Setup
+# ========================================
+print("=== HeartMAP Comprehensive Analysis ===")
+
+# Configure
+config = Config.default()
+config.data.min_genes = 200
+config.data.min_cells = 3
+config.data.max_cells_subset = 50000
+config.data.n_top_genes = 2000
+config.analysis.resolution = 0.5
+config.analysis.n_neighbors = 10
+config.analysis.n_pcs = 40
+config.analysis.use_liana = True
+
+config.update_paths('./analysis')
+config.create_directories()
+
+# ========================================
+# Run Pipeline
+# ========================================
+pipeline = ComprehensivePipeline(config)
+results = pipeline.run(
+    data_path='data/raw/heart_data.h5ad',
+    output_dir='results/comprehensive'
+)
+
+# ========================================
+# Analyze Results
+# ========================================
+adata = results['adata']
+analysis_results = results['results']
+
+print(f"\n{'='*50}")
+print("ANALYSIS SUMMARY")
+print('='*50)
+
+print(f"\nDataset: {adata.n_obs:,} cells × {adata.n_vars:,} genes")
+
+# Cell type annotation
+if 'leiden' in adata.obs.columns:
+    n_clusters = len(adata.obs['leiden'].unique())
+    print(f"\nCell Type Clusters: {n_clusters}")
+    
+    cluster_dist = adata.obs['leiden'].value_counts().head(5)
+    print("\nTop 5 Clusters:")
+    for cluster, count in cluster_dist.items():
+        pct = 100 * count / adata.n_obs
+        print(f"  Cluster {cluster}: {count:,} cells ({pct:.1f}%)")
+
+# Chamber distribution
+if 'chamber' in adata.obs.columns:
+    print("\nChamber Distribution:")
+    for chamber, count in adata.obs['chamber'].value_counts().items():
+        pct = 100 * count / adata.n_obs
+        print(f"  {chamber}: {count:,} cells ({pct:.1f}%)")
+
+# Communication hubs
+if 'hub_score' in adata.obs.columns:
+    hub_mean = adata.obs['hub_score'].mean()
+    hub_std = adata.obs['hub_score'].std()
+    print(f"\nHub Scores: {hub_mean:.4f} ± {hub_std:.4f}")
+    
+    # Top hub clusters
+    hub_by_cluster = adata.obs.groupby('leiden')['hub_score'].mean()
+    top_hubs = hub_by_cluster.nlargest(3)
+    print("\nTop Communication Hub Clusters:")
+    for cluster, score in top_hubs.items():
+        print(f"  Cluster {cluster}: {score:.4f}")
+
+# ========================================
+# Generate Custom Visualizations
+# ========================================
+print(f"\n{'='*50}")
+print("GENERATING VISUALIZATIONS")
+print('='*50)
+
+import matplotlib.pyplot as plt
+
+# Multi-panel UMAP
+if 'chamber' in adata.obs.columns:
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+    
+    # Panel 1: Clusters
+    sc.pl.umap(adata, color='leiden', ax=axes[0], 
+               show=False, frameon=False, title='Cell Types')
+    
+    # Panel 2: Chambers
+    sc.pl.umap(adata, color='chamber', ax=axes[1],
+               show=False, frameon=False, title='Chambers')
+    
+    # Panel 3: Hub scores
+    if 'hub_score' in adata.obs.columns:
+        sc.pl.umap(adata, color='hub_score', ax=axes[2],
+                   show=False, frameon=False, title='Hub Scores',
+                   cmap='viridis')
+    
+    plt.tight_layout()
+    plt.savefig('results/comprehensive/overview_panel.png',
+                dpi=300, bbox_inches='tight')
+    plt.close()
+    print("  Saved: overview_panel.png")
+
+# ========================================
+# Export Results
+# ========================================
+print(f"\n{'='*50}")
+print("EXPORTING RESULTS")
+print('='*50)
+
+# Cell metadata
+metadata = adata.obs[['leiden', 'n_genes', 'total_counts']].copy()
+if 'chamber' in adata.obs.columns:
+    metadata['chamber'] = adata.obs['chamber']
+if 'hub_score' in adata.obs.columns:
+    metadata['hub_score'] = adata.obs['hub_score']
+
+metadata.to_csv('results/comprehensive/cell_metadata.csv')
+print("  Saved: cell_metadata.csv")
+
+# Summary statistics
+summary = {
+    'total_cells': adata.n_obs,
+    'total_genes': adata.n_vars,
+    'n_clusters': len(adata.obs['leiden'].unique()),
+    'mean_genes_per_cell': adata.obs['n_genes'].mean(),
+    'mean_counts_per_cell': adata.obs['total_counts'].mean()
+}
+
+if 'chamber' in adata.obs.columns:
+    summary['n_chambers'] = len(adata.obs['chamber'].unique())
+
+summary_df = pd.DataFrame([summary])
+summary_df.to_csv('results/comprehensive/summary_stats.csv', index=False)
+print("  Saved: summary_stats.csv")
+
+print(f"\n{'='*50}")
+print("ANALYSIS COMPLETE!")
+print('='*50)
+print("\nOutput files:")
+for f in Path('results/comprehensive').rglob('*'):
+    if f.is_file():
+        print(f"  {f.relative_to('results/comprehensive')}")
+```
+
+## Output Structure
+
+```
+results/comprehensive/
+├── heartmap_complete.h5ad           # Complete processed data
+├── heartmap_model.pkl               # Trained model (if saved)
+├── analysis_report.md               # Automated report
+├── cell_metadata.csv                # All cell annotations
+├── summary_stats.csv                # Dataset statistics
+├── figures/
+│   ├── comprehensive_dashboard.png  # Integrated visualization
+│   ├── umap_clusters.png           # Cell type UMAP
+│   ├── qc_metrics.png              # Quality control plots
+│   ├── communication_heatmap.png   # Communication matrix
+│   ├── hub_scores.png              # Hub score UMAP
+│   ├── chamber_composition.png     # Chamber distribution
+│   └── chamber_correlations.png    # Cross-chamber similarity
+└── tables/
+    ├── marker_genes.csv            # Cell type markers
+    ├── communication_scores.csv    # L-R interactions
+    ├── hub_scores_by_type.csv     # Hub scores per type
+    └── chamber_markers.csv         # Chamber-specific genes
+```
+
+## Performance Optimization
+
+<AccordionGroup>
+  <Accordion title="For 8GB RAM Systems">
+    ```python
+    config.data.max_cells_subset = 10000
+    config.data.max_genes_subset = 2000
+    config.data.n_top_genes = 1500
+    config.analysis.n_pcs = 30
+    ```
+  </Accordion>
+
+  <Accordion title="For 16GB RAM Systems">
+    ```python
+    config.data.max_cells_subset = 30000
+    config.data.max_genes_subset = 4000
+    config.data.n_top_genes = 2000
+    config.analysis.n_pcs = 40
+    ```
+  </Accordion>
+
+  <Accordion title="For 32GB+ RAM Systems">
+    ```python
+    config.data.max_cells_subset = 50000
+    config.data.max_genes_subset = 5000
+    config.data.n_top_genes = 3000
+    config.analysis.n_pcs = 50
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Configuration Options
+
+All configuration parameters from individual pipelines apply:
+
+<ParamField path="data.min_genes" type="int" default="200">
+  Minimum genes per cell for QC
+</ParamField>
+
+<ParamField path="data.max_cells_subset" type="int" default="50000">
+  Maximum cells to process (memory optimization)
+</ParamField>
+
+<ParamField path="analysis.resolution" type="float" default="0.5">
+  Clustering resolution
+</ParamField>
+
+<ParamField path="analysis.use_liana" type="bool" default="true">
+  Enable LIANA ligand-receptor database
+</ParamField>
+
+<ParamField path="model.save_intermediate" type="bool" default="true">
+  Save intermediate results
+</ParamField>
+
+## Best Practices
+
+<Card title="Data Preparation" icon="database">
+  - Start with raw count data (not normalized)
+  - Ensure proper chamber annotations if available
+  - Remove low-quality cells beforehand if needed
+</Card>
+
+<Card title="Resource Management" icon="server">
+  - Monitor memory usage during analysis
+  - Use `max_cells_subset` to prevent OOM errors
+  - Enable `save_intermediate` for long analyses
+</Card>
+
+<Card title="Result Interpretation" icon="microscope">
+  - Validate clusters with known markers
+  - Check QC metrics for data quality issues
+  - Compare chamber patterns with literature
+</Card>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Memory errors during analysis">
+    Reduce dataset size:
+    ```python
+    config.data.max_cells_subset = 10000
+    config.data.max_genes_subset = 2000
+    ```
+  </Accordion>
+
+  <Accordion title="Analysis takes too long">
+    - Reduce `n_pcs` and `n_neighbors`
+    - Disable `use_liana` if L-R analysis not needed
+    - Use test mode: `config.data.test_mode = True`
+  </Accordion>
+
+  <Accordion title="Poor clustering results">
+    - Adjust `resolution` parameter
+    - Increase `n_top_genes` for more features
+    - Check QC metrics for quality issues
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Visualization Guide" icon="chart-line" href="/guides/visualization">
+    Advanced plotting options
+  </Card>
+  
+  <Card title="CLI Usage" icon="terminal" href="/guides/cli-usage">
+    Command-line interface
+  </Card>
+  
+  <Card title="API Reference" icon="code" href="/api-reference/pipelines/comprehensive-pipeline">
+    Complete API docs
+  </Card>
+</CardGroup>

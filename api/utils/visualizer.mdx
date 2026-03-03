@@ -1,0 +1,366 @@
+---
+title: "Visualizer"
+description: "Visualization utilities for HeartMAP analysis results"
+---
+
+The `Visualizer` class provides comprehensive plotting methods for visualizing quality control metrics, cell-cell communication patterns, chamber composition, and other HeartMAP analysis results.
+
+## Class Definition
+
+```python
+from heartmap.utils import Visualizer
+
+visualizer = Visualizer(config)
+```
+
+<ParamField path="config" type="Config" required>
+  HeartMAP configuration object containing analysis parameters and settings
+</ParamField>
+
+## Methods
+
+### plot_qc_metrics()
+
+Plot quality control metrics from single-cell data.
+
+```python
+visualizer.plot_qc_metrics(adata, save_dir)
+```
+
+<ParamField path="adata" type="AnnData" required>
+  Annotated data object containing QC metrics in `.obs`
+</ParamField>
+
+<ParamField path="save_dir" type="Path" required>
+  Directory path where the QC metrics plot will be saved
+</ParamField>
+
+**Returns:** None (saves plot as `qc_metrics.png`)
+
+**Visualizations Generated:**
+- Histogram of genes per cell
+- Histogram of UMI counts per cell
+- Histogram of mitochondrial gene percentage (if available)
+- Scatter plot of genes vs UMI counts
+
+**Example:**
+```python
+from pathlib import Path
+from heartmap.config import Config
+from heartmap.utils import Visualizer
+
+config = Config()
+visualizer = Visualizer(config)
+
+save_dir = Path("output/figures")
+save_dir.mkdir(parents=True, exist_ok=True)
+
+visualizer.plot_qc_metrics(adata, save_dir)
+# Saves to: output/figures/qc_metrics.png
+```
+
+---
+
+### plot_communication_heatmap()
+
+Plot cell-cell communication scores as a heatmap.
+
+```python
+visualizer.plot_communication_heatmap(comm_scores, save_dir)
+```
+
+<ParamField path="comm_scores" type="pd.DataFrame" required>
+  DataFrame containing communication scores with columns:
+  - `source`: Source cell type
+  - `target`: Target cell type
+  - `communication_score`: Specificity score
+</ParamField>
+
+<ParamField path="save_dir" type="Path" required>
+  Directory path where the heatmap will be saved
+</ParamField>
+
+**Returns:** None (saves plot as `communication_heatmap.png`)
+
+**Example:**
+```python
+import pandas as pd
+
+# Communication scores DataFrame
+comm_scores = pd.DataFrame({
+    'source': ['Cardiomyocyte', 'Fibroblast', 'Endothelial'],
+    'target': ['Fibroblast', 'Cardiomyocyte', 'Cardiomyocyte'],
+    'communication_score': [0.85, 0.72, 0.91]
+})
+
+visualizer.plot_communication_heatmap(comm_scores, save_dir)
+```
+
+---
+
+### plot_hub_scores()
+
+Visualize communication hub scores on UMAP embedding.
+
+```python
+visualizer.plot_hub_scores(adata, hub_scores, save_dir)
+```
+
+<ParamField path="adata" type="AnnData" required>
+  Annotated data object. UMAP will be computed if not present in `.obsm['X_umap']`
+</ParamField>
+
+<ParamField path="hub_scores" type="pd.Series" required>
+  Series containing hub scores for each cell
+</ParamField>
+
+<ParamField path="save_dir" type="Path" required>
+  Directory path where the hub scores plot will be saved
+</ParamField>
+
+**Returns:** None (saves plot as `hub_scores.png`)
+
+**Example:**
+```python
+import pandas as pd
+
+# Hub scores for cells
+hub_scores = pd.Series([0.5, 0.8, 0.3, 0.9], index=adata.obs_names)
+
+visualizer.plot_hub_scores(adata, hub_scores, save_dir)
+```
+
+---
+
+### plot_pathway_scores()
+
+Plot pathway activity scores across cell types.
+
+```python
+visualizer.plot_pathway_scores(pathway_scores, save_dir)
+```
+
+<ParamField path="pathway_scores" type="pd.DataFrame" required>
+  DataFrame with pathway activity scores (rows: pathways, columns: cell types)
+</ParamField>
+
+<ParamField path="save_dir" type="Path" required>
+  Directory path where the pathway scores heatmap will be saved
+</ParamField>
+
+**Returns:** None (saves plot as `pathway_scores.png`)
+
+**Example:**
+```python
+import pandas as pd
+
+pathway_scores = pd.DataFrame({
+    'Cardiomyocyte': [0.8, 0.6, 0.4],
+    'Fibroblast': [0.5, 0.7, 0.3],
+    'Endothelial': [0.3, 0.5, 0.9]
+}, index=['ECM_Organization', 'Angiogenesis', 'Contraction'])
+
+visualizer.plot_pathway_scores(pathway_scores, save_dir)
+```
+
+---
+
+### plot_chamber_composition()
+
+Visualize chamber composition as bar plot and pie chart.
+
+```python
+visualizer.plot_chamber_composition(adata, save_dir)
+```
+
+<ParamField path="adata" type="AnnData" required>
+  Annotated data object with `chamber` annotation in `.obs['chamber']`
+</ParamField>
+
+<ParamField path="save_dir" type="Path" required>
+  Directory path where the composition plot will be saved
+</ParamField>
+
+**Returns:** None (saves plot as `chamber_composition.png`)
+
+**Visualizations Generated:**
+- Bar plot showing cell counts by chamber
+- Pie chart showing chamber proportions
+
+**Example:**
+```python
+# Assumes adata.obs['chamber'] contains chamber annotations
+visualizer.plot_chamber_composition(adata, save_dir)
+```
+
+---
+
+### plot_chamber_markers()
+
+Plot top chamber-specific marker genes.
+
+```python
+visualizer.plot_chamber_markers(chamber_markers, save_dir)
+```
+
+<ParamField path="chamber_markers" type="Dict" required>
+  Dictionary mapping chamber names to DataFrames containing marker genes with columns:
+  - `names`: Gene names
+  - `pvals_adj`: Adjusted p-values
+</ParamField>
+
+<ParamField path="save_dir" type="Path" required>
+  Directory path where the markers plot will be saved
+</ParamField>
+
+**Returns:** None (saves plot as `chamber_markers.png`)
+
+**Example:**
+```python
+import pandas as pd
+
+chamber_markers = {
+    'LV': pd.DataFrame({
+        'names': ['MYH7', 'TNNT2', 'ACTC1'],
+        'pvals_adj': [1e-50, 1e-45, 1e-40]
+    }),
+    'RV': pd.DataFrame({
+        'names': ['NPPA', 'NPPB', 'IRX4'],
+        'pvals_adj': [1e-35, 1e-30, 1e-28]
+    })
+}
+
+visualizer.plot_chamber_markers(chamber_markers, save_dir)
+```
+
+---
+
+### plot_cross_chamber_correlations()
+
+Plot correlation heatmap between chambers.
+
+```python
+visualizer.plot_cross_chamber_correlations(correlations, save_dir)
+```
+
+<ParamField path="correlations" type="pd.DataFrame" required>
+  DataFrame containing correlation matrix between chambers
+</ParamField>
+
+<ParamField path="save_dir" type="Path" required>
+  Directory path where the correlation plot will be saved
+</ParamField>
+
+**Returns:** None (saves plot as `cross_chamber_correlations.png`)
+
+**Example:**
+```python
+import pandas as pd
+
+correlations = pd.DataFrame(
+    [[1.0, 0.75, 0.65, 0.70],
+     [0.75, 1.0, 0.80, 0.68],
+     [0.65, 0.80, 1.0, 0.72],
+     [0.70, 0.68, 0.72, 1.0]],
+    index=['LA', 'LV', 'RA', 'RV'],
+    columns=['LA', 'LV', 'RA', 'RV']
+)
+
+visualizer.plot_cross_chamber_correlations(correlations, save_dir)
+```
+
+---
+
+### create_comprehensive_dashboard()
+
+Create a comprehensive multi-panel visualization dashboard.
+
+```python
+visualizer.create_comprehensive_dashboard(adata, results, save_dir)
+```
+
+<ParamField path="adata" type="AnnData" required>
+  Annotated data object. PCA, neighbors, and UMAP will be computed if not present
+</ParamField>
+
+<ParamField path="results" type="Dict" required>
+  Dictionary containing analysis results from HeartMAP pipeline
+</ParamField>
+
+<ParamField path="save_dir" type="Path" required>
+  Directory path where the dashboard will be saved
+</ParamField>
+
+**Returns:** None (saves plot as `comprehensive_dashboard.png`)
+
+**Dashboard Panels:**
+- Cell type clusters (UMAP)
+- Communication hubs (UMAP)
+- Chamber distribution (pie chart)
+- Additional analysis-specific panels
+
+**Example:**
+```python
+from heartmap import HeartMAP
+
+# Run full analysis
+heartmap = HeartMAP(config)
+results = heartmap.analyze(adata)
+
+# Create dashboard
+visualizer.create_comprehensive_dashboard(
+    adata=results['adata'],
+    results=results,
+    save_dir=save_dir
+)
+```
+
+## Visualization Types
+
+### Quality Control
+- **Genes per cell**: Distribution histogram
+- **UMI counts**: Distribution histogram
+- **Mitochondrial percentage**: Distribution histogram
+- **Genes vs UMI**: Scatter plot correlation
+
+### Communication Analysis
+- **Communication heatmap**: Source-target specificity scores
+- **Hub scores**: UMAP overlay showing communication hub cells
+- **Pathway scores**: Activity heatmap across cell types
+
+### Chamber Analysis
+- **Chamber composition**: Bar plots and pie charts
+- **Chamber markers**: Top marker genes by significance
+- **Cross-chamber correlations**: Expression correlation heatmap
+
+### Comprehensive Dashboards
+- **Multi-panel figures**: Combining multiple analysis views
+- **Publication-ready**: High-resolution (300 DPI) outputs
+
+## Output Formats
+
+All visualizations are saved as PNG files with:
+- **Resolution**: 300 DPI (publication quality)
+- **Format**: PNG with tight bounding boxes
+- **File naming**: Descriptive names (e.g., `qc_metrics.png`, `communication_heatmap.png`)
+
+## Dependencies
+
+The Visualizer class requires the following plotting libraries:
+- matplotlib
+- seaborn
+- pandas
+- numpy
+- scanpy
+
+If these dependencies are not available, plotting methods will return silently without errors.
+
+## Notes
+
+<Note>
+  All plotting methods automatically compute missing embeddings (PCA, neighbors, UMAP) when needed. This ensures visualizations work even if preprocessing steps were skipped.
+</Note>
+
+<Warning>
+  If plotting dependencies are not installed, methods will return without generating plots. Install the visualization extras: `pip install heartmap[viz]`
+</Warning>

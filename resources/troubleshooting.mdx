@@ -1,0 +1,397 @@
+---
+title: Troubleshooting
+description: Common issues and solutions for HeartMAP
+---
+
+## Common Issues
+
+This guide covers the most common issues users encounter when working with HeartMAP and provides solutions to resolve them.
+
+## Memory Issues
+
+### Memory Errors During Analysis
+
+<Warning>
+  **Error**: `MemoryError` or system running out of RAM during analysis
+</Warning>
+
+**Solution**: Reduce the dataset size in your configuration file:
+
+```yaml config.yaml
+data:
+  max_cells_subset: 10000  # Reduce from default 50000
+  max_genes_subset: 2000   # Reduce from default 5000
+```
+
+### Memory Optimization Guidelines
+
+Choose appropriate settings based on your system RAM:
+
+| System RAM | max_cells_subset | max_genes_subset | Use Case |
+|------------|------------------|------------------|----------|
+| 8GB        | 10,000          | 2,000           | Laptop/Desktop |
+| 16GB       | 30,000          | 4,000           | Workstation |
+| 32GB       | 50,000          | 5,000           | Server |
+| 64GB+      | 100,000+        | 10,000+         | HPC/Cloud |
+
+<Tip>
+  Start with smaller values and gradually increase them to find the optimal balance for your system.
+</Tip>
+
+## Installation Issues
+
+### Import Errors
+
+<Warning>
+  **Error**: `ModuleNotFoundError: No module named 'heartmap'`
+</Warning>
+
+**Solution 1**: Reinstall with all dependencies:
+
+```bash
+pip install -e .[all]
+```
+
+**Solution 2**: Check Python path and installation:
+
+```bash
+# Verify installation location
+python -c "import heartmap; print(heartmap.__file__)"
+
+# Check installed version
+pip show heartmap
+```
+
+**Solution 3**: Ensure virtual environment is activated:
+
+```bash
+# Linux/Mac
+source heartmap_env/bin/activate
+
+# Windows
+heartmap_env\Scripts\activate
+```
+
+### Missing Dependencies
+
+<Warning>
+  **Error**: Import errors for specific packages (scanpy, liana, etc.)
+</Warning>
+
+**Solution**: Install missing dependencies:
+
+```bash
+# Install all dependencies
+pip install -r requirements-dev.txt
+
+# Or install specific feature sets
+pip install heartmap[communication]  # Communication analysis
+pip install heartmap[api]            # API features
+pip install heartmap[all]            # Everything
+```
+
+## Data Loading Issues
+
+### Invalid Data Format
+
+<Warning>
+  **Error**: Unable to load `.h5ad` file or data format errors
+</Warning>
+
+**Solution 1**: Verify data format:
+
+```python
+import scanpy as sc
+
+# Test loading
+try:
+    adata = sc.read_h5ad('data/raw/your_file.h5ad')
+    print(f"✓ Data loaded: {adata.n_obs} cells, {adata.n_vars} genes")
+except Exception as e:
+    print(f"✗ Error: {e}")
+```
+
+**Solution 2**: Check file permissions:
+
+```bash
+ls -la data/raw/
+# Ensure you have read permissions
+```
+
+**Solution 3**: Verify file integrity:
+
+```bash
+# Check if file is corrupted
+file data/raw/your_file.h5ad
+
+# Verify checksums if available
+python utils/sha256_checksum.py verify data/raw data/raw/checksums.txt
+```
+
+### Missing Required Columns
+
+<Warning>
+  **Error**: KeyError for expected columns like 'chamber' or 'cell_type'
+</Warning>
+
+**Solution**: Check your data structure:
+
+```python
+import scanpy as sc
+
+adata = sc.read_h5ad('your_data.h5ad')
+
+# Check available columns
+print("Available columns:", adata.obs.columns.tolist())
+
+# Add chamber column if missing
+if 'chamber' not in adata.obs.columns:
+    # Add chamber information from your metadata
+    adata.obs['chamber'] = your_chamber_labels
+    adata.write_h5ad('your_data.h5ad')
+```
+
+## Performance Issues
+
+### Slow Analysis
+
+<Warning>
+  **Issue**: Analysis taking too long to complete
+</Warning>
+
+**Solution 1**: Enable test mode for quick validation:
+
+```yaml config.yaml
+data:
+  test_mode: true  # Uses smaller subset for testing
+```
+
+**Solution 2**: Reduce computational parameters:
+
+```yaml config.yaml
+analysis:
+  n_components_pca: 30      # Reduce from 50
+  n_neighbors: 10           # Keep default
+  n_pcs: 30                 # Reduce from 40
+  n_marker_genes: 15        # Reduce from 25
+```
+
+**Solution 3**: Use GPU acceleration (if available):
+
+```yaml config.yaml
+model:
+  use_gpu: true
+```
+
+### Long Runtime
+
+Expected runtimes for different configurations:
+
+| Dataset Size | Memory | Configuration | Expected Runtime |
+|-------------|--------|---------------|------------------|
+| 10K cells   | 8GB    | Basic         | 5-10 minutes     |
+| 30K cells   | 16GB   | Comprehensive | 15-20 minutes    |
+| 50K cells   | 32GB   | Comprehensive | 25-30 minutes    |
+| 100K cells  | 64GB   | Comprehensive | 45-60 minutes    |
+
+## Analysis Errors
+
+### Clustering Failures
+
+<Warning>
+  **Error**: Clustering algorithm fails or produces unexpected results
+</Warning>
+
+**Solution**: Adjust clustering parameters:
+
+```yaml config.yaml
+analysis:
+  resolution: 0.3          # Lower resolution for fewer clusters
+  n_neighbors: 15          # Increase for smoother clusters
+  use_leiden: true         # Try Leiden instead of Louvain
+```
+
+### Communication Analysis Errors
+
+<Warning>
+  **Error**: LIANA or communication analysis fails
+</Warning>
+
+**Solution 1**: Ensure cell type annotations exist:
+
+```python
+# Check if cell types are annotated
+if 'cell_type' not in adata.obs.columns:
+    # Run basic pipeline first to get cell types
+    from heartmap.pipelines import BasicPipeline
+    pipeline = BasicPipeline(config)
+    results = pipeline.run('your_data.h5ad', 'results/')
+```
+
+**Solution 2**: Disable LIANA if it's causing issues:
+
+```yaml config.yaml
+analysis:
+  use_liana: false  # Disable communication analysis temporarily
+```
+
+## Configuration Issues
+
+### Invalid Configuration
+
+<Warning>
+  **Error**: Configuration validation errors
+</Warning>
+
+**Solution**: Use default configuration as a starting point:
+
+```python
+from heartmap import Config
+
+# Start with defaults
+config = Config.default()
+
+# Modify specific parameters
+config.data.max_cells_subset = 30000
+config.analysis.resolution = 0.5
+
+# Save custom configuration
+config.to_yaml('my_config.yaml')
+```
+
+### Path Issues
+
+<Warning>
+  **Error**: File or directory not found errors
+</Warning>
+
+**Solution**: Check and create required directories:
+
+```python
+import os
+
+# Create required directories
+directories = ['data/raw', 'data/processed', 'results', 'figures', 'models']
+for directory in directories:
+    os.makedirs(directory, exist_ok=True)
+```
+
+## Validation Tools
+
+### Quick Validation
+
+Run the validation script to check your setup:
+
+```bash
+python scripts/validate.py
+```
+
+This script checks:
+- Python version and environment
+- Package installation
+- Dependencies
+- Configuration
+- Data access
+
+### Test with Mock Data
+
+Test your installation with generated mock data:
+
+```bash
+python scripts/demo.py
+```
+
+This will:
+- Generate mock heart data
+- Run a quick analysis
+- Verify all components work correctly
+
+## Getting Help
+
+### Check Logs
+
+HeartMAP creates logs in the results directory:
+
+```bash
+# View recent logs
+cat results/heartmap.log
+
+# Check for errors
+grep -i error results/heartmap.log
+```
+
+### Diagnostic Information
+
+Gather diagnostic information for bug reports:
+
+```python
+import heartmap
+import sys
+import scanpy
+
+print(f"HeartMAP version: {heartmap.__version__}")
+print(f"Python version: {sys.version}")
+print(f"Scanpy version: {scanpy.__version__}")
+
+# Check configuration
+config = Config.default()
+print(f"Configuration: {config}")
+```
+
+### Support Channels
+
+<CardGroup cols={2}>
+  <Card title="GitHub Issues" icon="github" href="https://github.com/Tumo505/HeartMap/issues">
+    Report bugs and request features
+  </Card>
+  <Card title="GitHub Discussions" icon="comments" href="https://github.com/Tumo505/HeartMap/discussions">
+    Ask questions and share knowledge
+  </Card>
+  <Card title="Documentation" icon="book">
+    Review comprehensive guides and API docs
+  </Card>
+  <Card title="Email Support" icon="envelope">
+    Contact: 28346416@mylife.unisa.ac.za
+  </Card>
+</CardGroup>
+
+## Platform-Specific Issues
+
+### Windows
+
+**Issue**: Path separator errors
+
+```python
+import os
+
+# Use os.path.join for cross-platform compatibility
+data_path = os.path.join('data', 'raw', 'your_data.h5ad')
+```
+
+### macOS
+
+**Issue**: Installation issues with certain packages
+
+```bash
+# Install Xcode command line tools if needed
+xcode-select --install
+
+# Use homebrew for system dependencies
+brew install hdf5
+```
+
+### Linux
+
+**Issue**: Permission errors
+
+```bash
+# Ensure proper permissions
+chmod +x scripts/*.sh
+
+# Run setup with proper permissions
+bash scripts/setup.sh
+```
+
+<Note>
+  Most issues can be resolved by following the installation instructions carefully and using the appropriate memory settings for your system. If you continue to experience problems, please reach out through our support channels.
+</Note>

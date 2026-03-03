@@ -1,0 +1,263 @@
+---
+title: "DataConfig"
+description: "Data processing configuration for HeartMAP"
+---
+
+The `DataConfig` class defines configuration parameters for data preprocessing, filtering, and quality control in HeartMAP.
+
+## Class Definition
+
+```python
+from heartmap.config import DataConfig
+```
+
+## Constructor
+
+```python
+DataConfig(
+    min_genes=200,
+    min_cells=3,
+    max_cells_subset=None,
+    max_genes_subset=None,
+    target_sum=1e4,
+    n_top_genes=2000,
+    random_seed=42,
+    test_mode=False
+)
+```
+
+## Configuration Fields
+
+### min_genes
+
+<ParamField path="min_genes" type="int" default="200">
+  Minimum number of genes expressed for a cell to be retained. Cells with fewer genes are filtered out during quality control.
+</ParamField>
+
+**Example:**
+```python
+from heartmap.config import DataConfig
+
+config = DataConfig(min_genes=300)
+# Only cells expressing at least 300 genes will be retained
+```
+
+### min_cells
+
+<ParamField path="min_cells" type="int" default="3">
+  Minimum number of cells in which a gene must be expressed to be retained. Genes expressed in fewer cells are filtered out.
+</ParamField>
+
+**Example:**
+```python
+config = DataConfig(min_cells=5)
+# Only genes expressed in at least 5 cells will be retained
+```
+
+### max_cells_subset
+
+<ParamField path="max_cells_subset" type="Optional[int]" default="null">
+  Maximum number of cells to use for analysis. If set, randomly subsamples cells to this number. Useful for limiting memory usage with large datasets. If `null`, uses all cells.
+</ParamField>
+
+**Example:**
+```python
+config = DataConfig(max_cells_subset=50000)
+# Randomly subsample to 50,000 cells if dataset is larger
+```
+
+### max_genes_subset
+
+<ParamField path="max_genes_subset" type="Optional[int]" default="null">
+  Maximum number of genes to use for analysis. If set, keeps only the top highly variable genes. Useful for limiting memory usage. If `null`, uses all genes (after filtering).
+</ParamField>
+
+**Example:**
+```python
+config = DataConfig(max_genes_subset=5000)
+# Keep only top 5,000 genes for analysis
+```
+
+### target_sum
+
+<ParamField path="target_sum" type="float" default="10000.0">
+  Target sum for normalization. Each cell's counts are normalized to this total count. Standard value is 10,000 (1e4).
+</ParamField>
+
+**Example:**
+```python
+config = DataConfig(target_sum=1e4)
+# Normalize each cell to 10,000 total counts
+```
+
+### n_top_genes
+
+<ParamField path="n_top_genes" type="int" default="2000">
+  Number of highly variable genes to select for downstream analysis. These genes show the most variation across cells and are most informative for clustering.
+</ParamField>
+
+**Example:**
+```python
+config = DataConfig(n_top_genes=3000)
+# Select top 3,000 highly variable genes
+```
+
+### random_seed
+
+<ParamField path="random_seed" type="int" default="42">
+  Random seed for reproducibility. Ensures consistent results across runs for stochastic operations like subsampling and PCA.
+</ParamField>
+
+**Example:**
+```python
+config = DataConfig(random_seed=123)
+# Use seed 123 for reproducible results
+```
+
+### test_mode
+
+<ParamField path="test_mode" type="bool" default="false">
+  Enable test mode for faster processing with reduced data. When `true`, uses smaller subsets and fewer iterations for quick testing.
+</ParamField>
+
+**Example:**
+```python
+config = DataConfig(test_mode=True)
+# Enable test mode for rapid prototyping
+```
+
+## Usage Examples
+
+### Default Configuration
+
+```python
+from heartmap.config import DataConfig
+
+# Create with default values
+config = DataConfig()
+print(config.min_genes)  # 200
+print(config.target_sum)  # 10000.0
+```
+
+### Custom Configuration
+
+```python
+from heartmap.config import DataConfig
+
+# Create with custom values
+config = DataConfig(
+    min_genes=300,
+    min_cells=5,
+    n_top_genes=3000,
+    random_seed=123
+)
+```
+
+### Memory-Efficient Configuration
+
+```python
+from heartmap.config import DataConfig
+
+# Configure for large datasets with memory constraints
+config = DataConfig(
+    max_cells_subset=50000,  # Limit to 50k cells
+    max_genes_subset=5000,   # Limit to 5k genes
+    n_top_genes=2000
+)
+```
+
+### Quality Control Configuration
+
+```python
+from heartmap.config import DataConfig
+
+# Stricter quality control
+config = DataConfig(
+    min_genes=500,   # More stringent cell filtering
+    min_cells=10,    # More stringent gene filtering
+    target_sum=1e4
+)
+```
+
+### Using with Main Config
+
+```python
+from heartmap.config import Config, DataConfig
+
+# Create custom data config
+data_config = DataConfig(
+    min_genes=300,
+    min_cells=5,
+    n_top_genes=3000
+)
+
+# Use with main config
+config = Config.default()
+config.data = data_config
+
+# Or create from dictionary
+config = Config.from_dict({
+    'data': {
+        'min_genes': 300,
+        'min_cells': 5,
+        'n_top_genes': 3000
+    }
+})
+```
+
+### Loading from YAML
+
+```yaml
+# config.yaml
+data:
+  min_genes: 300
+  min_cells: 5
+  max_cells_subset: 50000
+  max_genes_subset: 5000
+  target_sum: 10000.0
+  n_top_genes: 2000
+  random_seed: 42
+  test_mode: false
+```
+
+```python
+from heartmap.config import Config
+
+config = Config.from_yaml('config.yaml')
+print(config.data.min_genes)  # 300
+```
+
+## Best Practices
+
+### Quality Control
+
+- **min_genes**: Use 200-500 depending on data quality. Higher values filter out more low-quality cells.
+- **min_cells**: Use 3-10. Higher values remove rare genes but may filter out important markers.
+
+### Memory Management
+
+- Set **max_cells_subset** when working with datasets > 100k cells
+- Set **max_genes_subset** when memory is limited (< 16 GB RAM)
+- Both parameters use random subsampling, so set **random_seed** for reproducibility
+
+### Feature Selection
+
+- **n_top_genes**: 2000-3000 works well for most datasets
+- Increase for heterogeneous datasets with many cell types
+- Decrease for homogeneous datasets or memory constraints
+
+### Normalization
+
+- **target_sum**: 1e4 (10,000) is standard
+- Some protocols use 1e6 for compatibility with TPM units
+
+### Testing
+
+- Enable **test_mode** during development for faster iteration
+- Always disable for production analysis
+
+## See Also
+
+- [Config](/api/config/config) - Main configuration class
+- [AnalysisConfig](/api/config/analysis-config) - Analysis configuration
+- [ModelConfig](/api/config/model-config) - Model configuration

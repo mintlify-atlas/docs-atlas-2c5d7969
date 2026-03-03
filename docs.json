@@ -1,122 +1,137 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "HeartMAP",
+  "theme": "palm",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#E63946",
+    "light": "#F1FAEE",
+    "dark": "#1D3557"
   },
-  "favicon": "/favicon.svg",
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/Tumo505/HeartMap"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/Tumo505/HeartMap"
+    }
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Get Started",
             "pages": [
-              "index",
-              "quickstart",
-              "development"
+              "introduction",
+              "installation",
+              "quickstart"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Core Concepts",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "concepts/overview",
+              "concepts/pipelines",
+              "concepts/chamber-analysis",
+              "concepts/cell-communication",
+              "concepts/configuration"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "Guides",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
+              "guides/basic-analysis",
+              "guides/communication-analysis",
+              "guides/multi-chamber-analysis",
+              "guides/comprehensive-pipeline",
+              "guides/visualization",
+              "guides/cli-usage",
+              "guides/api-usage"
             ]
           },
           {
-            "group": "AI tools",
+            "group": "Examples",
             "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "examples/quick-analysis",
+              "examples/python-api",
+              "examples/custom-pipelines",
+              "examples/advanced-workflows"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "API Reference",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Pipelines",
             "pages": [
-              "api-reference/introduction"
+              "api/pipelines/basic-pipeline",
+              "api/pipelines/advanced-communication-pipeline",
+              "api/pipelines/multi-chamber-pipeline",
+              "api/pipelines/comprehensive-pipeline"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Configuration",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "api/config/config",
+              "api/config/data-config",
+              "api/config/analysis-config",
+              "api/config/model-config"
+            ]
+          },
+          {
+            "group": "Data Processing",
+            "pages": [
+              "api/data/data-processor",
+              "api/data/lr-database"
+            ]
+          },
+          {
+            "group": "Utilities",
+            "pages": [
+              "api/utils/visualizer",
+              "api/utils/results-exporter"
+            ]
+          },
+          {
+            "group": "REST API",
+            "pages": [
+              "api/rest/overview",
+              "api/rest/endpoints",
+              "api/rest/authentication"
+            ]
+          },
+          {
+            "group": "CLI",
+            "pages": [
+              "api/cli/commands",
+              "api/cli/options"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Resources",
+        "groups": [
+          {
+            "group": "Additional Resources",
+            "pages": [
+              "resources/scientific-background",
+              "resources/datasets",
+              "resources/troubleshooting",
+              "resources/faq",
+              "resources/changelog",
+              "resources/contributing"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+    ]
   }
 }

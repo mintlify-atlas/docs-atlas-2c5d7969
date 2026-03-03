@@ -1,0 +1,355 @@
+---
+title: "ResultsExporter"
+description: "Export HeartMAP analysis results in various formats"
+---
+
+The `ResultsExporter` class provides methods to export HeartMAP analysis results to different file formats, including CSV tables and comprehensive markdown reports.
+
+## Class Definition
+
+```python
+from heartmap.utils import ResultsExporter
+
+exporter = ResultsExporter(config)
+```
+
+<ParamField path="config" type="Config" required>
+  HeartMAP configuration object containing analysis parameters and settings
+</ParamField>
+
+## Methods
+
+### export_results()
+
+Export all analysis results to organized files.
+
+```python
+exporter.export_results(results, output_dir)
+```
+
+<ParamField path="results" type="Dict" required>
+  Dictionary containing HeartMAP analysis results with the following structure:
+  - `results['results']['marker_genes']`: DataFrame of marker genes
+  - `results['results']['communication_scores']`: DataFrame of communication scores
+</ParamField>
+
+<ParamField path="output_dir" type="Path" required>
+  Directory path where results will be exported. Created if it doesn't exist.
+</ParamField>
+
+**Returns:** None
+
+**Files Generated:**
+- `tables/marker_genes.csv`: Marker genes for each cell type
+- `tables/communication_scores.csv`: Cell-cell communication specificity scores
+
+**Example:**
+```python
+from pathlib import Path
+from heartmap.config import Config
+from heartmap.utils import ResultsExporter
+from heartmap import HeartMAP
+
+# Run analysis
+config = Config()
+heartmap = HeartMAP(config)
+results = heartmap.analyze(adata)
+
+# Export results
+exporter = ResultsExporter(config)
+output_dir = Path("output/exports")
+exporter.export_results(results, output_dir)
+
+# Results saved to:
+# - output/exports/tables/marker_genes.csv
+# - output/exports/tables/communication_scores.csv
+```
+
+---
+
+### generate_comprehensive_report()
+
+Generate a comprehensive markdown report summarizing the analysis.
+
+```python
+exporter.generate_comprehensive_report(results, output_dir)
+```
+
+<ParamField path="results" type="Dict" required>
+  Dictionary containing HeartMAP analysis results with:
+  - `adata`: Annotated data object with analysis results
+  - Additional result components from the analysis pipeline
+</ParamField>
+
+<ParamField path="output_dir" type="str" required>
+  Directory path where the report will be saved (as string or Path)
+</ParamField>
+
+**Returns:** None (saves report as `analysis_report.md`)
+
+**Report Sections:**
+
+1. **Dataset Overview**
+   - Total number of cells
+   - Total number of genes
+
+2. **Analysis Components Completed**
+   - Cell type annotation
+   - Cell-cell communication analysis
+   - Multi-chamber analysis
+
+3. **Key Findings**
+   - Cell type distribution (top 5 clusters)
+   - Chamber distribution (if available)
+   - Communication patterns summary
+
+4. **Files Generated**
+   - List of output files and directories
+
+5. **Next Steps**
+   - Recommended follow-up analyses
+
+**Example:**
+```python
+from heartmap.utils import ResultsExporter
+
+exporter = ResultsExporter(config)
+exporter.generate_comprehensive_report(
+    results=results,
+    output_dir="output/reports"
+)
+
+# Report saved to: output/reports/analysis_report.md
+```
+
+**Sample Report Output:**
+
+```markdown
+# HeartMAP Analysis Report
+
+## Dataset Overview
+- **Total Cells**: 15,234
+- **Total Genes**: 20,567
+
+## Analysis Components Completed
+-  Cell type annotation
+-  Cell-cell communication analysis
+-  Multi-chamber analysis
+
+## Key Findings
+
+### Cell Type Annotation
+- **Number of cell types identified**: 8
+- **Cell type distribution**:
+  - Cluster 0: 4,523 cells (29.7%)
+  - Cluster 1: 3,234 cells (21.2%)
+  - Cluster 2: 2,456 cells (16.1%)
+  - Cluster 3: 1,890 cells (12.4%)
+  - Cluster 4: 1,567 cells (10.3%)
+
+### Chamber Distribution
+- **LV**: 6,234 cells (40.9%)
+- **RV**: 4,567 cells (30.0%)
+- **LA**: 2,456 cells (16.1%)
+- **RA**: 1,977 cells (13.0%)
+
+### Communication Analysis
+- Cell-cell communication patterns identified
+- Communication hub cells detected
+- Pathway activity scores calculated
+
+## Files Generated
+- `heartmap_complete.h5ad`: Complete processed dataset
+- `heartmap_model.pkl`: Trained HeartMAP model
+- `figures/`: All visualization outputs
+- `tables/`: Exported data tables
+
+## Next Steps
+1. Validate findings with literature
+2. Investigate specific cell type interactions
+3. Apply model to new datasets
+```
+
+## Output Formats
+
+### CSV Tables
+
+Exported CSV files contain structured data for downstream analysis:
+
+**marker_genes.csv**
+```csv
+cluster,gene,log2fc,pval,pval_adj
+0,MYH7,5.23,1.2e-50,3.4e-47
+0,TNNT2,4.87,2.1e-48,5.2e-45
+1,COL1A1,6.12,3.4e-55,8.9e-52
+```
+
+**communication_scores.csv**
+```csv
+source,target,ligand,receptor,communication_score
+Cardiomyocyte,Fibroblast,VEGFA,FLT1,0.856
+Fibroblast,Cardiomyocyte,COL1A1,DDR2,0.723
+Endothelial,Cardiomyocyte,NRG1,ERBB4,0.912
+```
+
+### Markdown Reports
+
+Generated reports use GitHub-flavored markdown with:
+- **Encoding**: UTF-8 (supports special characters)
+- **Format**: Markdown (.md)
+- **Sections**: Hierarchical structure with headers
+- **Statistics**: Formatted numbers with thousands separators
+- **Percentages**: One decimal place precision
+
+## File Organization
+
+The `export_results()` method creates the following directory structure:
+
+```
+output_dir/
+├── tables/
+│   ├── marker_genes.csv
+│   └── communication_scores.csv
+└── analysis_report.md
+```
+
+## Best Practices
+
+### Organizing Exports
+
+```python
+from pathlib import Path
+
+# Create organized output structure
+base_dir = Path("output/experiment_001")
+tables_dir = base_dir / "tables"
+figures_dir = base_dir / "figures"
+reports_dir = base_dir / "reports"
+
+# Export results
+exporter.export_results(results, base_dir)
+
+# Generate report
+exporter.generate_comprehensive_report(results, str(reports_dir))
+```
+
+### Combining with Visualizer
+
+```python
+from heartmap.utils import Visualizer, ResultsExporter
+
+# Initialize utilities
+visualizer = Visualizer(config)
+exporter = ResultsExporter(config)
+
+# Export data and visualizations
+exporter.export_results(results, output_dir)
+visualizer.create_comprehensive_dashboard(
+    adata=results['adata'],
+    results=results,
+    save_dir=output_dir / "figures"
+)
+
+# Generate summary report
+exporter.generate_comprehensive_report(results, str(output_dir))
+```
+
+### Automated Pipeline Export
+
+```python
+def export_complete_analysis(results, output_base):
+    """Export all analysis components"""
+    output_base = Path(output_base)
+    
+    # Initialize exporters
+    exporter = ResultsExporter(config)
+    visualizer = Visualizer(config)
+    
+    # Export data tables
+    exporter.export_results(results, output_base / "data")
+    
+    # Generate visualizations
+    fig_dir = output_base / "figures"
+    fig_dir.mkdir(parents=True, exist_ok=True)
+    
+    visualizer.plot_qc_metrics(results['adata'], fig_dir)
+    visualizer.plot_communication_heatmap(
+        results['results']['communication_scores'],
+        fig_dir
+    )
+    visualizer.create_comprehensive_dashboard(
+        results['adata'],
+        results,
+        fig_dir
+    )
+    
+    # Generate report
+    exporter.generate_comprehensive_report(
+        results,
+        str(output_base / "reports")
+    )
+    
+    print(f"Complete analysis exported to: {output_base}")
+
+# Use in pipeline
+export_complete_analysis(results, "output/full_export")
+```
+
+## Data Structures
+
+### Results Dictionary
+
+Expected structure for the `results` parameter:
+
+```python
+results = {
+    'adata': AnnData,  # Annotated data object
+    'results': {
+        'marker_genes': pd.DataFrame,  # Optional
+        'communication_scores': pd.DataFrame,  # Optional
+        # ... other result components
+    }
+}
+```
+
+### AnnData Requirements
+
+The `adata` object should contain:
+
+<ResponseField name="adata.obs" type="pd.DataFrame">
+  Cell metadata with optional columns:
+  - `leiden`: Cluster assignments
+  - `chamber`: Chamber annotations
+  - `cell_type`: Cell type labels
+</ResponseField>
+
+<ResponseField name="adata.n_obs" type="int">
+  Number of cells (observations)
+</ResponseField>
+
+<ResponseField name="adata.n_vars" type="int">
+  Number of genes (variables)
+</ResponseField>
+
+## Error Handling
+
+The exporter handles missing data gracefully:
+
+- **Missing marker genes**: Skipped, no CSV generated
+- **Missing communication scores**: Skipped, no CSV generated
+- **Missing adata**: Report generation returns without error
+- **Missing chambers**: Chamber section omitted from report
+
+## Notes
+
+<Note>
+  The `generate_comprehensive_report()` method uses UTF-8 encoding to support special characters and emojis in the generated markdown report.
+</Note>
+
+<Tip>
+  Combine `ResultsExporter` with `Visualizer` for a complete export pipeline that includes both data tables and publication-ready figures.
+</Tip>
+
+<Warning>
+  The `export_results()` method will overwrite existing CSV files in the output directory. Use unique directory names for different analyses to prevent data loss.
+</Warning>

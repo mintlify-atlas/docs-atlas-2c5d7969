@@ -1,0 +1,382 @@
+---
+title: "API Endpoints"
+description: "Complete reference for all HeartMAP REST API endpoints"
+---
+
+## Root Endpoint
+
+### GET /
+
+Get basic API information and version.
+
+```bash
+curl http://localhost:8000/
+```
+
+**Response:**
+
+```json
+{
+  "message": "HeartMAP API",
+  "version": "1.0.0"
+}
+```
+
+<ResponseField name="message" type="string">
+  API name
+</ResponseField>
+
+<ResponseField name="version" type="string">
+  API version number
+</ResponseField>
+
+---
+
+## Health Check
+
+### GET /health
+
+Check if the API server is healthy and responsive.
+
+```bash
+curl http://localhost:8000/health
+```
+
+**Response:**
+
+```json
+{
+  "status": "healthy"
+}
+```
+
+<ResponseField name="status" type="string">
+  Health status of the server ("healthy" or "unhealthy")
+</ResponseField>
+
+---
+
+## Analyze Data
+
+### POST /analyze
+
+Upload and analyze single-cell RNA sequencing data.
+
+```bash
+curl -X POST http://localhost:8000/analyze \
+  -F "file=@heart_data.h5ad" \
+  -F "analysis_type=comprehensive" \
+  -F "output_format=json"
+```
+
+#### Request Parameters
+
+<ParamField body="file" type="file" required>
+  Single-cell data file in .h5ad format (AnnData object)
+</ParamField>
+
+<ParamField body="analysis_type" type="string" default="comprehensive">
+  Type of analysis pipeline to run
+  
+  Options:
+  - `basic` - Quality control and preprocessing
+  - `advanced_communication` - Cell-cell communication analysis
+  - `multi_chamber` - Multi-chamber comparative analysis
+  - `comprehensive` - Complete analysis with all features
+</ParamField>
+
+<ParamField body="config_overrides" type="object">
+  Optional configuration overrides as JSON object
+  
+  Example:
+  ```json
+  {
+    "min_genes": 200,
+    "min_cells": 3
+  }
+  ```
+</ParamField>
+
+<ParamField body="output_format" type="string" default="json">
+  Format for output results
+  
+  Options:
+  - `json` - JSON format
+  - `csv` - CSV format
+  - `h5ad` - AnnData H5AD format
+</ParamField>
+
+#### Response
+
+**Success Response (200):**
+
+```json
+{
+  "status": "success",
+  "message": "Analysis completed successfully",
+  "results": {
+    "summary": {
+      "n_cells": 15420,
+      "analysis_completed": true
+    },
+    "annotation_summary": {
+      "n_cell_types": 12,
+      "confidence_scores": {
+        "mean": 0.87,
+        "median": 0.92
+      }
+    },
+    "communication_summary": {
+      "n_interactions": 245,
+      "significant_interactions": 87
+    },
+    "multi_chamber_summary": {
+      "chambers_analyzed": ["LV", "RV", "LA", "RA"],
+      "chamber_specific_genes": 156
+    }
+  },
+  "output_files": null
+}
+```
+
+<ResponseField name="status" type="string" required>
+  Status of the analysis request ("success" or "error")
+</ResponseField>
+
+<ResponseField name="message" type="string" required>
+  Human-readable message about the analysis result
+</ResponseField>
+
+<ResponseField name="results" type="object">
+  Analysis results object containing summaries and metrics
+  
+  <Expandable title="results properties">
+    <ResponseField name="summary" type="object">
+      Overall analysis summary
+      
+      <Expandable title="summary properties">
+        <ResponseField name="n_cells" type="integer">
+          Number of cells analyzed
+        </ResponseField>
+        
+        <ResponseField name="analysis_completed" type="boolean">
+          Whether analysis completed successfully
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    
+    <ResponseField name="annotation_summary" type="object">
+      Cell type annotation results (if included in pipeline)
+      
+      <Expandable title="annotation_summary properties">
+        <ResponseField name="n_cell_types" type="integer">
+          Number of identified cell types
+        </ResponseField>
+        
+        <ResponseField name="confidence_scores" type="object">
+          Statistics about annotation confidence
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    
+    <ResponseField name="communication_summary" type="object">
+      Cell-cell communication results (if included in pipeline)
+      
+      <Expandable title="communication_summary properties">
+        <ResponseField name="n_interactions" type="integer">
+          Total number of interactions detected
+        </ResponseField>
+        
+        <ResponseField name="significant_interactions" type="integer">
+          Number of statistically significant interactions
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    
+    <ResponseField name="multi_chamber_summary" type="object">
+      Multi-chamber analysis results (if included in pipeline)
+      
+      <Expandable title="multi_chamber_summary properties">
+        <ResponseField name="chambers_analyzed" type="array">
+          List of heart chambers included in analysis
+        </ResponseField>
+        
+        <ResponseField name="chamber_specific_genes" type="integer">
+          Number of chamber-specific genes identified
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="output_files" type="array">
+  List of output file paths (if any)
+</ResponseField>
+
+**Error Response (500):**
+
+```json
+{
+  "detail": "Error message describing what went wrong"
+}
+```
+
+#### Example with Config Overrides
+
+```bash
+curl -X POST http://localhost:8000/analyze \
+  -F "file=@heart_data.h5ad" \
+  -F 'request={"analysis_type":"basic","config_overrides":{"min_genes":200,"min_cells":3},"output_format":"json"}'
+```
+
+---
+
+## List Models
+
+### GET /models
+
+Get a list of all available analysis models/pipelines.
+
+```bash
+curl http://localhost:8000/models
+```
+
+**Response:**
+
+```json
+{
+  "models": [
+    "basic",
+    "advanced_communication",
+    "multi_chamber",
+    "comprehensive"
+  ]
+}
+```
+
+<ResponseField name="models" type="array">
+  Array of available analysis model names
+</ResponseField>
+
+---
+
+## Get Configuration
+
+### GET /config
+
+Retrieve the current server configuration.
+
+```bash
+curl http://localhost:8000/config
+```
+
+**Response:**
+
+```json
+{
+  "min_genes": 200,
+  "min_cells": 3,
+  "max_genes": 2500,
+  "mt_percent": 5,
+  "n_top_genes": 2000,
+  "n_neighbors": 15,
+  "resolution": 0.8,
+  "output_dir": "results",
+  "cache_dir": ".cache",
+  "temp_dir": "temp"
+}
+```
+
+The response contains all current configuration parameters as a dictionary. The exact structure depends on the HeartMAP Config class.
+
+---
+
+## Update Configuration
+
+### POST /config
+
+Update the server configuration at runtime.
+
+```bash
+curl -X POST http://localhost:8000/config \
+  -H "Content-Type: application/json" \
+  -d '{
+    "min_genes": 250,
+    "min_cells": 5,
+    "resolution": 1.0
+  }'
+```
+
+#### Request Body
+
+<ParamField body="config" type="object" required>
+  Configuration object with parameters to update. Accepts any valid HeartMAP configuration parameters.
+  
+  Common parameters:
+  - `min_genes` (integer): Minimum number of genes per cell
+  - `min_cells` (integer): Minimum number of cells per gene
+  - `max_genes` (integer): Maximum number of genes per cell
+  - `mt_percent` (number): Maximum mitochondrial gene percentage
+  - `resolution` (number): Clustering resolution
+</ParamField>
+
+**Success Response (200):**
+
+```json
+{
+  "status": "success",
+  "message": "Configuration updated"
+}
+```
+
+<ResponseField name="status" type="string">
+  Status of the update request ("success")
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Confirmation message
+</ResponseField>
+
+**Error Response (400):**
+
+```json
+{
+  "detail": "Invalid configuration parameter: invalid_param"
+}
+```
+
+---
+
+## Error Responses
+
+All endpoints may return error responses with appropriate HTTP status codes:
+
+### 400 Bad Request
+
+Invalid request parameters or malformed request body.
+
+```json
+{
+  "detail": "Invalid analysis type: unknown_type"
+}
+```
+
+### 500 Internal Server Error
+
+Server-side error during processing.
+
+```json
+{
+  "detail": "Analysis failed: insufficient memory"
+}
+```
+
+## Rate Limiting
+
+Currently, there are no rate limits implemented on the API. For production deployments, consider implementing rate limiting using middleware or a reverse proxy.
+
+## Next Steps
+
+<Card title="Authentication" icon="lock" href="/api/rest/authentication">
+  Learn about API authentication options
+</Card>

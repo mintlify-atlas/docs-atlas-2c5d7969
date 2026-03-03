@@ -1,0 +1,156 @@
+---
+title: Introduction to HeartMAP
+description: A production-ready Python package for comprehensive single-cell heart analysis with chamber-specific insights
+---
+
+# Welcome to HeartMAP
+
+HeartMAP (Heart Multi-chamber Analysis Platform) is a specialized bioinformatics package that decodes cellular communication across all four chambers of the human heart. Unlike general single-cell tools, HeartMAP is purpose-built for cardiac biology, offering chamber-specific insights crucial for understanding heart function, disease, and therapeutic opportunities.
+
+<Note>
+  **Published in Computational and Structural Biotechnology Journal (2025)**
+  
+  [Read the paper](https://www.sciencedirect.com/science/article/pii/S2001037025004866) | DOI: 10.1016/j.csbj.2025.11.015
+</Note>
+
+## Why HeartMAP?
+
+Understanding cell-cell communication within and between the four distinct cardiac chambers is fundamental to elucidating cardiac function and disease mechanisms. Each chamber exhibits unique cellular and molecular characteristics that reflect specialized physiological roles, yet existing frameworks for mapping chamber-specific intercellular networks have remained limited.
+
+HeartMAP addresses this gap by providing a computational framework that infers cardiac cell-cell communication networks at chamber resolution through integration of single-cell RNA-seq co-expression patterns and ligand-receptor interaction databases.
+
+<CardGroup cols={2}>
+  <Card title="Production Ready" icon="check-circle">
+    Fully tested, documented, and deployed on PyPI with comprehensive validation on real human heart datasets
+  </Card>
+  
+  <Card title="Multiple Interfaces" icon="window-restore">
+    Access HeartMAP through CLI, Python API, REST API, or Web interface - whatever fits your workflow
+  </Card>
+  
+  <Card title="Easy Installation" icon="download">
+    Install with a single command: `pip install heartmap` and start analyzing in minutes
+  </Card>
+  
+  <Card title="Memory Optimized" icon="memory">
+    Configurable memory usage works on systems with 8GB+ RAM with intelligent subsetting
+  </Card>
+  
+  <Card title="Chamber-Specific" icon="heart-pulse">
+    Analyze all four cardiac chambers (RA, RV, LA, LV) with specialized markers and communication patterns
+  </Card>
+  
+  <Card title="Comprehensive" icon="chart-network">
+    From basic QC and cell typing to advanced communication analysis and multi-chamber insights
+  </Card>
+</CardGroup>
+
+## Key Features
+
+### Analysis Pipelines
+
+HeartMAP provides multiple analysis pipelines to suit your needs:
+
+| Pipeline | Purpose | Output | Runtime |
+|----------|---------|--------|--------|
+| **Basic** | Quality control, cell typing | Cell annotations, QC metrics | 5-10 min |
+| **Communication** | Cell-cell interactions | Communication networks, hubs | 10-15 min |
+| **Multi-Chamber** | Chamber-specific analysis | Chamber markers, comparisons | 15-20 min |
+| **Comprehensive** | Complete analysis | All of the above + reports | 20-30 min |
+
+### Scientific Results
+
+Using a dataset of 287,269 cells from seven healthy human heart donors, HeartMAP has identified:
+
+- **Chamber-specific cell populations** with unique markers for RA, RV, LA, and LV
+- **Communication networks** revealing both conserved and chamber-specific signaling pathways
+- **Communication hubs** with atrial cardiomyocytes and adipocytes as key signaling centers (hub scores: 0.037-0.047)
+- **Cross-chamber correlations** showing highest similarity between ventricles (r=0.985) and lowest between LA and LV (r=0.870)
+
+<Info>
+  HeartMAP has identified over 150 significantly different genes per chamber pair, establishing a molecular foundation for precision cardiology approaches.
+</Info>
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Pharmaceutical Research" icon="flask">
+    Drug target discovery and safety assessment with chamber-specific therapeutic targets
+  </Card>
+  
+  <Card title="Clinical Cardiology" icon="stethoscope">
+    Precision medicine and disease mechanism understanding for better patient outcomes
+  </Card>
+  
+  <Card title="Basic Research" icon="microscope">
+    Cardiac development studies, evolutionary biology, and fundamental cardiac research
+  </Card>
+  
+  <Card title="Computational Biology" icon="code">
+    Method benchmarking, data integration, and pipeline development
+  </Card>
+</CardGroup>
+
+## Performance
+
+HeartMAP is optimized for various hardware configurations:
+
+| Hardware | Dataset Size | Memory | Runtime | Status |
+|----------|-------------|--------|---------|--------|
+| 8GB RAM | 30K cells | ~6GB | 15 min | ✅ Recommended |
+| 16GB RAM | 50K cells | ~12GB | 25 min | ⚡ Optimal |
+| 32GB RAM | 100K cells | ~24GB | 45 min | 🚀 Production |
+
+## Getting Started
+
+Ready to start analyzing cardiac single-cell data? Here's what to do next:
+
+<CardGroup cols={2}>
+  <Card title="Install HeartMAP" icon="download" href="/installation">
+    Install HeartMAP and verify your setup
+  </Card>
+  
+  <Card title="Quick Start Guide" icon="rocket" href="/quickstart">
+    Run your first analysis in minutes
+  </Card>
+  
+  <Card title="API Reference" icon="code" href="/api-reference">
+    Explore the Python API in depth
+  </Card>
+  
+  <Card title="Tutorials" icon="book" href="/tutorials">
+    Learn advanced features and workflows
+  </Card>
+</CardGroup>
+
+## Scientific Impact
+
+HeartMAP enables:
+
+- **Clinical Applications**: Chamber-specific therapeutic strategies for improved treatment outcomes
+- **Research Advances**: First comprehensive multi-chamber communication atlas
+- **Education**: Accessible cardiac biology analysis platform for students and researchers
+- **Industry Tools**: Production-ready bioinformatics tool for pharmaceutical and biotech companies
+
+## Citation
+
+If you use HeartMAP in your research, please cite our paper:
+
+```bibtex
+@article{KGABENG2025,
+  title = {HeartMAP: A Multi-Chamber Spatial Framework for Cardiac Cell-Cell Communication},
+  journal = {Computational and Structural Biotechnology Journal},
+  year = {2025},
+  issn = {2001-0370},
+  doi = {https://doi.org/10.1016/j.csbj.2025.11.015},
+  author = {Tumo Kgabeng and Lulu Wang and Harry Ngwangwa and Thanyani Pandelani},
+  keywords = {single-cell RNA-seq, cell-cell communication, cardiac chambers, 
+              spatial transcriptomics, therapeutic targets}
+}
+```
+
+---
+
+<Note>
+  **Next Steps**: [Install HeartMAP](/installation) to get started, or jump directly to the [Quick Start Guide](/quickstart) to see it in action.
+</Note>

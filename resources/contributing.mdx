@@ -1,0 +1,565 @@
+---
+title: Contributing
+description: How to contribute to HeartMAP development
+---
+
+## Welcome Contributors!
+
+Thank you for your interest in contributing to HeartMAP! We welcome contributions from the community to help improve this cardiac analysis platform.
+
+<Info>
+  HeartMAP is an open-source project licensed under Apache 2.0. Contributions of all kinds are welcome: bug reports, feature requests, documentation improvements, and code contributions.
+</Info>
+
+## Ways to Contribute
+
+<CardGroup cols={2}>
+  <Card title="Report Bugs" icon="bug">
+    Found an issue? Help us improve by reporting bugs on GitHub Issues.
+  </Card>
+  <Card title="Suggest Features" icon="lightbulb">
+    Have an idea? Share feature requests and enhancements in Discussions.
+  </Card>
+  <Card title="Improve Documentation" icon="book">
+    Help others by improving guides, examples, and API documentation.
+  </Card>
+  <Card title="Submit Code" icon="code">
+    Contribute bug fixes, new features, or performance improvements.
+  </Card>
+</CardGroup>
+
+## Getting Started
+
+### Development Setup
+
+<Steps>
+  <Step title="Clone the Repository">
+    ```bash
+    git clone https://github.com/Tumo505/HeartMap.git
+    cd HeartMap
+    ```
+  </Step>
+  
+  <Step title="Create Virtual Environment">
+    ```bash
+    # Create environment
+    python3 -m venv heartmap_env
+    
+    # Activate environment
+    source heartmap_env/bin/activate  # Linux/Mac
+    # OR
+    heartmap_env\Scripts\activate  # Windows
+    ```
+  </Step>
+  
+  <Step title="Install Dependencies">
+    ```bash
+    # Install development dependencies
+    pip install -r requirements-dev.txt
+    
+    # Install HeartMAP in editable mode
+    pip install -e .[dev]
+    ```
+  </Step>
+  
+  <Step title="Verify Installation">
+    ```bash
+    # Run validation script
+    python scripts/validate.py
+    
+    # Run tests
+    python tests/test_heartmap.py
+    ```
+  </Step>
+</Steps>
+
+### Alternative: Automated Setup
+
+For convenience, use the automated setup script:
+
+```bash
+# Run automated setup
+./scripts/setup.sh
+
+# Activate environment
+source heartmap_env/bin/activate
+
+# Validate installation
+python scripts/validate.py
+```
+
+## Development Workflow
+
+### 1. Create a Feature Branch
+
+```bash
+# Update main branch
+git checkout main
+git pull origin main
+
+# Create feature branch
+git checkout -b feature-name
+# OR for bug fixes
+git checkout -b fix-bug-name
+```
+
+### 2. Make Your Changes
+
+Follow these guidelines:
+
+- Write clear, readable code
+- Follow existing code style and conventions
+- Add docstrings to functions and classes
+- Include type hints where appropriate
+- Update tests if needed
+- Update documentation if needed
+
+### 3. Test Your Changes
+
+```bash
+# Run all tests
+python tests/test_heartmap.py
+
+# Run specific test file
+python tests/test_config.py
+
+# Run validation
+python scripts/validate.py
+
+# Test with example data
+python scripts/demo.py
+```
+
+### 4. Code Quality Checks
+
+```bash
+# Format code with Black
+black src/ tests/ scripts/ --line-length=100
+
+# Lint with flake8
+flake8 src/ --max-line-length=100 --ignore=E203,W503
+
+# Type checking with mypy
+mypy src/heartmap --ignore-missing-imports
+```
+
+### 5. Commit Your Changes
+
+```bash
+# Stage changes
+git add .
+
+# Commit with clear message
+git commit -m "Add feature: clear description of changes"
+
+# Push to your fork
+git push origin feature-name
+```
+
+### 6. Submit Pull Request
+
+1. Go to the [HeartMap repository](https://github.com/Tumo505/HeartMap)
+2. Click "New Pull Request"
+3. Select your branch
+4. Fill out the PR template:
+   - Clear description of changes
+   - Related issues (if any)
+   - Testing performed
+   - Documentation updates (if any)
+5. Submit for review
+
+## Code Guidelines
+
+### Python Style Guide
+
+HeartMAP follows PEP 8 with some modifications:
+
+<Accordion title="Code Style Rules">
+  - **Line length**: 100 characters (not 79)
+  - **Indentation**: 4 spaces (no tabs)
+  - **Imports**: Standard library, third-party, local (separated by blank lines)
+  - **Docstrings**: Google style format
+  - **Type hints**: Use where appropriate for clarity
+  - **Naming**:
+    - Functions/variables: `snake_case`
+    - Classes: `PascalCase`
+    - Constants: `UPPER_CASE`
+</Accordion>
+
+### Documentation Style
+
+<Accordion title="Docstring Format">
+  Use Google-style docstrings:
+  
+  ```python
+  def analyze_chamber(adata, chamber_name, config):
+      """Analyze a specific cardiac chamber.
+      
+      Args:
+          adata (AnnData): Annotated data object
+          chamber_name (str): Name of chamber (RA, RV, LA, or LV)
+          config (Config): Configuration object
+      
+      Returns:
+          dict: Dictionary containing analysis results with keys:
+              - 'markers': Chamber-specific marker genes
+              - 'stats': Statistical summaries
+              - 'plots': Visualization paths
+      
+      Raises:
+          ValueError: If chamber_name is not valid
+          KeyError: If required metadata is missing
+      
+      Example:
+          >>> results = analyze_chamber(adata, 'LV', config)
+          >>> print(results['markers'].head())
+      """
+      # Implementation here
+      pass
+  ```
+</Accordion>
+
+### Testing Guidelines
+
+<Accordion title="Writing Tests">
+  Tests should be:
+  
+  - **Comprehensive**: Cover normal cases and edge cases
+  - **Independent**: Tests should not depend on each other
+  - **Fast**: Use mock data or small datasets
+  - **Clear**: Test one thing at a time with clear names
+  
+  ```python
+  def test_chamber_analysis():
+      """Test chamber-specific analysis pipeline."""
+      # Arrange
+      config = Config.default()
+      mock_data = generate_mock_data(n_cells=100)
+      
+      # Act
+      results = analyze_chamber(mock_data, 'LV', config)
+      
+      # Assert
+      assert 'markers' in results
+      assert len(results['markers']) > 0
+      assert results['stats']['n_cells'] == 100
+  ```
+</Accordion>
+
+## Project Structure
+
+Understanding the codebase:
+
+```
+HeartMap/
+├── src/heartmap/          # Main source code
+│   ├── models/           # Analysis models
+│   ├── pipelines/        # Analysis pipelines
+│   ├── api/              # API interfaces
+│   ├── config/           # Configuration management
+│   └── utils/            # Utility functions
+├── tests/                # Test suite
+│   ├── test_config.py
+│   ├── test_data.py
+│   ├── test_models.py
+│   └── test_pipelines.py
+├── scripts/              # Utility scripts
+│   ├── setup.sh
+│   ├── validate.py
+│   └── demo.py
+├── notebooks/            # Jupyter notebooks
+├── docs/                 # Documentation
+├── data/                 # Data directory
+│   ├── raw/             # Raw input data
+│   └── processed/       # Processed data
+└── results/              # Analysis results
+```
+
+## Adding New Features
+
+### New Analysis Models
+
+Create new models by inheriting from `BaseModel`:
+
+```python
+from heartmap.models.base import BaseModel
+
+class MyCustomModel(BaseModel):
+    """Custom analysis model."""
+    
+    def __init__(self, config):
+        super().__init__(config)
+        # Initialize your model
+    
+    def fit(self, adata):
+        """Fit model to data."""
+        # Training logic
+        pass
+    
+    def predict(self, adata):
+        """Generate predictions."""
+        # Prediction logic
+        pass
+```
+
+Place new models in `src/heartmap/models/`.
+
+### New Pipelines
+
+Create new pipelines by inheriting from `BasePipeline`:
+
+```python
+from heartmap.pipelines.base import BasePipeline
+
+class MyCustomPipeline(BasePipeline):
+    """Custom analysis pipeline."""
+    
+    def run(self, input_path, output_dir):
+        """Run the pipeline."""
+        # Load data
+        adata = self._load_data(input_path)
+        
+        # Process
+        results = self._process(adata)
+        
+        # Save results
+        self._save_results(results, output_dir)
+        
+        return results
+```
+
+Place new pipelines in `src/heartmap/pipelines/`.
+
+### Configuration Options
+
+Extend configuration by modifying dataclasses in `src/heartmap/config/`:
+
+```python
+from dataclasses import dataclass
+
+@dataclass
+class MyFeatureConfig:
+    """Configuration for new feature."""
+    param1: int = 10
+    param2: float = 0.5
+    param3: bool = True
+```
+
+### API Endpoints
+
+Add new REST API endpoints in `src/heartmap/api/rest.py`:
+
+```python
+from fastapi import APIRouter
+
+router = APIRouter()
+
+@router.post("/my-endpoint")
+async def my_endpoint(param: str):
+    """New API endpoint."""
+    # Implementation
+    return {"result": "success"}
+```
+
+## Testing Requirements
+
+### Before Submitting PR
+
+Ensure all checks pass:
+
+<Tabs>
+  <Tab title="Tests">
+    ```bash
+    # Run full test suite
+    python tests/test_heartmap.py
+    
+    # All tests should pass
+    # Add new tests for new features
+    ```
+  </Tab>
+  
+  <Tab title="Code Quality">
+    ```bash
+    # Format code
+    black src/ tests/ scripts/
+    
+    # Lint code
+    flake8 src/ --max-line-length=100
+    
+    # Type checking
+    mypy src/heartmap --ignore-missing-imports
+    ```
+  </Tab>
+  
+  <Tab title="Validation">
+    ```bash
+    # Run validation script
+    python scripts/validate.py
+    
+    # Test with demo
+    python scripts/demo.py
+    ```
+  </Tab>
+</Tabs>
+
+### Test Coverage
+
+Aim for good test coverage:
+
+```bash
+# Install coverage tool
+pip install coverage
+
+# Run tests with coverage
+coverage run -m pytest tests/
+
+# View coverage report
+coverage report
+coverage html  # Generate HTML report
+```
+
+## Documentation
+
+### Updating Documentation
+
+If your changes affect user-facing features:
+
+1. **Update docstrings**: Ensure all functions have clear documentation
+2. **Update guides**: Modify relevant documentation pages
+3. **Add examples**: Include usage examples where appropriate
+4. **Update CHANGELOG**: Add entry for your changes
+
+### Writing Examples
+
+Provide clear examples for new features:
+
+```python
+# Example: Using the new feature
+from heartmap import MyNewFeature
+
+# Initialize
+feature = MyNewFeature(config)
+
+# Use the feature
+results = feature.run(data)
+
+# Access results
+print(results.summary())
+```
+
+## Pull Request Guidelines
+
+### PR Checklist
+
+<Accordion title="Before Submitting">
+  - [ ] Code follows style guidelines
+  - [ ] All tests pass
+  - [ ] New tests added (if applicable)
+  - [ ] Documentation updated (if applicable)
+  - [ ] CHANGELOG updated (if applicable)
+  - [ ] Code formatted with Black
+  - [ ] No linting errors
+  - [ ] Type hints added where appropriate
+  - [ ] Examples provided (if adding features)
+  - [ ] Commits are clear and descriptive
+</Accordion>
+
+### PR Description Template
+
+```markdown
+## Description
+Clear description of what this PR does.
+
+## Type of Change
+- [ ] Bug fix
+- [ ] New feature
+- [ ] Breaking change
+- [ ] Documentation update
+
+## Related Issues
+Fixes #123, Relates to #456
+
+## Testing
+- Describe testing performed
+- Include test results
+
+## Documentation
+- List documentation updates made
+
+## Additional Notes
+Any additional information
+```
+
+## Code Review Process
+
+1. **Submission**: You submit a pull request
+2. **Automated checks**: CI/CD runs tests and quality checks
+3. **Review**: Maintainers review your code
+4. **Feedback**: Reviewers may request changes
+5. **Iteration**: Address feedback and update PR
+6. **Approval**: Once approved, PR is merged
+7. **Release**: Changes included in next release
+
+<Tip>
+  Be responsive to feedback and questions during review. We're all working together to improve HeartMAP!
+</Tip>
+
+## Getting Help
+
+Need help contributing?
+
+- **Questions**: Ask in [GitHub Discussions](https://github.com/Tumo505/HeartMap/discussions)
+- **Issues**: Check [existing issues](https://github.com/Tumo505/HeartMap/issues)
+- **Email**: Contact 28346416@mylife.unisa.ac.za
+
+## Recognition
+
+Contributors are recognized:
+
+- Listed in the project contributors
+- Mentioned in release notes
+- Acknowledged in the README
+
+Significant contributions may also be acknowledged in academic publications.
+
+## Code of Conduct
+
+### Our Standards
+
+We expect all contributors to:
+
+- Be respectful and inclusive
+- Accept constructive feedback gracefully
+- Focus on what's best for the community
+- Show empathy towards others
+
+### Unacceptable Behavior
+
+- Harassment or discriminatory language
+- Personal attacks
+- Trolling or inflammatory comments
+- Publishing others' private information
+
+### Enforcement
+
+Violations may result in:
+
+1. Warning
+2. Temporary ban
+3. Permanent ban
+
+Report issues to project maintainers.
+
+## License
+
+By contributing, you agree that your contributions will be licensed under Apache 2.0, the same license as HeartMAP.
+
+---
+
+<Card title="Ready to Contribute?" icon="rocket">
+  Fork the repository, make your changes, and submit a pull request. We look forward to your contributions!
+  
+  [View on GitHub](https://github.com/Tumo505/HeartMap)
+</Card>
+
+Thank you for helping make HeartMAP better!

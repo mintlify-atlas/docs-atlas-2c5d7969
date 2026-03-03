@@ -1,0 +1,469 @@
+---
+title: 'Multi-Chamber Analysis'
+description: 'Chamber-specific analysis of cardiac single-cell data with MultiChamberPipeline'
+---
+
+# Multi-Chamber Heart Analysis
+
+The `MultiChamberPipeline` performs chamber-specific analysis to identify patterns unique to each cardiac chamber (RA, RV, LA, LV).
+
+## Overview
+
+This pipeline analyzes:
+- Chamber-specific cell type composition
+- Chamber-specific marker genes
+- Cross-chamber correlation patterns
+- Chamber-to-chamber differential expression
+
+## Prerequisites
+
+<Note>
+  Your data must include chamber annotations in `adata.obs['chamber']` with values: `RA`, `RV`, `LA`, `LV`
+</Note>
+
+<Steps>
+
+### Verify Chamber Annotations
+
+```python
+import scanpy as sc
+
+# Load your data
+adata = sc.read_h5ad('data/heart_data.h5ad')
+
+# Check for chamber information
+if 'chamber' in adata.obs.columns:
+    print("Chamber distribution:")
+    print(adata.obs['chamber'].value_counts())
+else:
+    print("Warning: No chamber annotations found!")
+    print("Available metadata:", adata.obs.columns.tolist())
+```
+
+### Add Chamber Annotations (if needed)
+
+If your data lacks chamber labels, you can add them:
+
+```python
+import pandas as pd
+
+# Option 1: From sample metadata
+# Map sample IDs to chambers
+chamber_map = {
+    'sample_1': 'RA',
+    'sample_2': 'RV',
+    'sample_3': 'LA',
+    'sample_4': 'LV'
+}
+adata.obs['chamber'] = adata.obs['sample'].map(chamber_map)
+
+# Option 2: From cell names (if encoded)
+# Example: cell names like "RA_AAACCTGAG..."
+adata.obs['chamber'] = adata.obs_names.str.split('_').str[0]
+
+# Option 3: Manual assignment based on metadata
+def infer_chamber(row):
+    tissue = row['tissue'].upper()
+    if 'RIGHT ATRI' in tissue or 'RA' in tissue:
+        return 'RA'
+    elif 'RIGHT VENT' in tissue or 'RV' in tissue:
+        return 'RV'
+    elif 'LEFT ATRI' in tissue or 'LA' in tissue:
+        return 'LA'
+    elif 'LEFT VENT' in tissue or 'LV' in tissue:
+        return 'LV'
+    return 'Unknown'
+
+adata.obs['chamber'] = adata.obs.apply(infer_chamber, axis=1)
+
+# Verify
+print("Chamber distribution:")
+print(adata.obs['chamber'].value_counts())
+
+# Save annotated data
+adata.write('data/heart_data_with_chambers.h5ad')
+```
+
+### Configure the Pipeline
+
+```python
+from heartmap import Config
+
+config = Config.default()
+config.update_paths('./multi_chamber_analysis')
+config.create_directories()
+```
+
+### Run Multi-Chamber Analysis
+
+```python
+from heartmap.pipelines import MultiChamberPipeline
+
+# Initialize pipeline
+pipeline = MultiChamberPipeline(config)
+
+# Run analysis
+results = pipeline.run(
+    data_path='data/heart_data_with_chambers.h5ad',
+    output_dir='results/multi_chamber'
+)
+
+print("Multi-chamber analysis completed!")
+```
+
+### Analyze Chamber Composition
+
+Examine cell type distribution across chambers:
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+adata = results['adata']
+
+# Create composition table
+composition = pd.crosstab(
+    adata.obs['leiden'],
+    adata.obs['chamber'],
+    normalize='columns'
+) * 100  # Convert to percentages
+
+print("Cell type composition by chamber (%):\n")
+print(composition.round(1))
+
+# Visualize as heatmap
+plt.figure(figsize=(10, 8))
+sns.heatmap(composition, annot=True, fmt='.1f', 
+            cmap='YlOrRd', cbar_kws={'label': '% of cells'})
+plt.title('Cell Type Composition Across Chambers')
+plt.xlabel('Chamber')
+plt.ylabel('Cluster')
+plt.tight_layout()
+plt.savefig('results/multi_chamber/composition_heatmap.png', dpi=300)
+```
+
+### Identify Chamber-Specific Markers
+
+Find genes specific to each chamber:
+
+```python
+import scanpy as sc
+
+# Find marker genes for each chamber
+sc.tl.rank_genes_groups(
+    adata,
+    groupby='chamber',
+    method='wilcoxon',
+    key_added='chamber_markers'
+)
+
+# Extract top markers per chamber
+for chamber in ['RA', 'RV', 'LA', 'LV']:
+    print(f"\nTop 10 markers for {chamber}:")
+    markers = sc.get.rank_genes_groups_df(
+        adata, 
+        group=chamber,
+        key='chamber_markers'
+    ).head(10)
+    
+    for _, row in markers.iterrows():
+        print(f"  {row['names']}: "
+              f"log2fc={row['logfoldchanges']:.2f}, "
+              f"padj={row['pvals_adj']:.2e}")
+
+# Save all markers
+for chamber in adata.obs['chamber'].unique():
+    markers = sc.get.rank_genes_groups_df(
+        adata,
+        group=chamber,
+        key='chamber_markers'
+    )
+    markers.to_csv(
+        f'results/multi_chamber/markers_{chamber}.csv',
+        index=False
+    )
+```
+
+### Compare Chambers
+
+Analyze similarity between chambers:
+
+```python
+import numpy as np
+from scipy.stats import pearsonr
+
+# Calculate mean expression per chamber
+chamber_profiles = {}
+for chamber in ['RA', 'RV', 'LA', 'LV']:
+    chamber_mask = adata.obs['chamber'] == chamber
+    if hasattr(adata.X, 'toarray'):
+        mean_expr = np.asarray(adata.X[chamber_mask].mean(axis=0)).flatten()
+    else:
+        mean_expr = adata.X[chamber_mask].mean(axis=0)
+    chamber_profiles[chamber] = mean_expr
+
+# Compute pairwise correlations
+chambers = ['RA', 'RV', 'LA', 'LV']
+corr_matrix = pd.DataFrame(
+    index=chambers,
+    columns=chambers,
+    dtype=float
+)
+
+for i, ch1 in enumerate(chambers):
+    for j, ch2 in enumerate(chambers):
+        if i == j:
+            corr_matrix.loc[ch1, ch2] = 1.0
+        else:
+            corr, _ = pearsonr(
+                chamber_profiles[ch1],
+                chamber_profiles[ch2]
+            )
+            corr_matrix.loc[ch1, ch2] = corr
+
+print("\nCross-chamber correlations:")
+print(corr_matrix.round(3))
+
+# Visualize
+plt.figure(figsize=(8, 6))
+sns.heatmap(corr_matrix.astype(float), 
+            annot=True, fmt='.3f',
+            cmap='coolwarm', center=0.9,
+            vmin=0.8, vmax=1.0)
+plt.title('Cross-Chamber Expression Correlations')
+plt.tight_layout()
+plt.savefig('results/multi_chamber/chamber_correlations.png', dpi=300)
+```
+
+### Visualize Chamber-Specific Patterns
+
+```python
+import scanpy as sc
+
+# UMAP colored by chamber
+sc.pl.umap(adata, color='chamber',
+           palette={'RA': '#FF6B6B', 'RV': '#4ECDC4',
+                    'LA': '#45B7D1', 'LV': '#96CEB4'},
+           title='Cells by Chamber',
+           save='_by_chamber.png')
+
+# Split UMAP by chamber
+sc.pl.umap(adata, color='leiden',
+           ncols=2, wspace=0.3,
+           split_show=['RA', 'RV', 'LA', 'LV'],
+           save='_split_by_chamber.png')
+
+# Chamber-specific marker expression
+chamber_markers = {
+    'RA': ['NPPA', 'MIR100HG', 'MYL7'],
+    'RV': ['NEAT1', 'MYH7', 'FHL2'],
+    'LA': ['NPPA', 'ELN', 'EBF2'],
+    'LV': ['CD36', 'FHL2', 'MYH7']
+}
+
+# Plot marker genes
+for chamber, genes in chamber_markers.items():
+    # Filter genes present in data
+    genes_present = [g for g in genes if g in adata.var_names]
+    if genes_present:
+        sc.pl.umap(adata, color=genes_present,
+                   ncols=3, cmap='viridis',
+                   title=f'{chamber} Markers',
+                   save=f'_{chamber}_markers.png')
+```
+
+### Export Chamber-Specific Data
+
+```python
+# Save chamber-specific subsets
+for chamber in ['RA', 'RV', 'LA', 'LV']:
+    chamber_data = adata[adata.obs['chamber'] == chamber].copy()
+    chamber_data.write(
+        f'results/multi_chamber/data_{chamber}.h5ad'
+    )
+    print(f"{chamber}: {chamber_data.n_obs} cells saved")
+
+# Export summary statistics
+summary = []
+for chamber in adata.obs['chamber'].unique():
+    chamber_mask = adata.obs['chamber'] == chamber
+    summary.append({
+        'chamber': chamber,
+        'n_cells': chamber_mask.sum(),
+        'n_cell_types': adata.obs[chamber_mask]['leiden'].nunique(),
+        'mean_genes': adata.obs[chamber_mask]['n_genes'].mean(),
+        'mean_counts': adata.obs[chamber_mask]['total_counts'].mean()
+    })
+
+summary_df = pd.DataFrame(summary)
+summary_df.to_csv('results/multi_chamber/chamber_summary.csv', index=False)
+print("\nChamber Summary:")
+print(summary_df)
+```
+
+</Steps>
+
+## Complete Working Example
+
+```python
+from heartmap import Config
+from heartmap.pipelines import MultiChamberPipeline
+import scanpy as sc
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Load data with chamber annotations
+adata = sc.read_h5ad('data/heart_data_with_chambers.h5ad')
+
+print("=== Multi-Chamber Analysis ===")
+print(f"Total cells: {adata.n_obs:,}")
+print("\nCells per chamber:")
+for chamber, count in adata.obs['chamber'].value_counts().items():
+    pct = 100 * count / adata.n_obs
+    print(f"  {chamber}: {count:,} ({pct:.1f}%)")
+
+# Configure and run pipeline
+config = Config.default()
+config.update_paths('./analysis')
+config.create_directories()
+
+pipeline = MultiChamberPipeline(config)
+results = pipeline.run(
+    'data/heart_data_with_chambers.h5ad',
+    'results/multi_chamber'
+)
+
+# Analyze results
+adata = results['adata']
+
+# Chamber composition analysis
+composition = pd.crosstab(
+    adata.obs['leiden'],
+    adata.obs['chamber'],
+    normalize='columns'
+) * 100
+
+print("\nCell type distribution by chamber:")
+for chamber in ['RA', 'RV', 'LA', 'LV']:
+    print(f"\n{chamber}:")
+    top_types = composition[chamber].nlargest(3)
+    for cell_type, pct in top_types.items():
+        print(f"  Cluster {cell_type}: {pct:.1f}%")
+
+# Find chamber-specific markers
+sc.tl.rank_genes_groups(
+    adata,
+    groupby='chamber',
+    method='wilcoxon'
+)
+
+print("\nTop 5 chamber-specific genes:")
+for chamber in ['RA', 'RV', 'LA', 'LV']:
+    markers = sc.get.rank_genes_groups_df(adata, group=chamber).head(5)
+    print(f"\n{chamber}: {', '.join(markers['names'].tolist())}")
+
+# Visualizations
+sc.pl.umap(adata, color=['chamber', 'leiden'],
+           ncols=2, save='_multi_chamber_overview.png')
+
+print("\nAnalysis complete! Check results/multi_chamber/")
+```
+
+## Expected Output Structure
+
+```
+results/multi_chamber/
+├── data_RA.h5ad                    # Right atrium subset
+├── data_RV.h5ad                    # Right ventricle subset
+├── data_LA.h5ad                    # Left atrium subset
+├── data_LV.h5ad                    # Left ventricle subset
+├── chamber_summary.csv             # Summary statistics
+├── markers_RA.csv                  # Chamber-specific markers
+├── markers_RV.csv
+├── markers_LA.csv
+├── markers_LV.csv
+└── figures/
+    ├── chamber_composition.png     # Cell type by chamber
+    ├── chamber_correlations.png    # Cross-chamber similarity
+    └── chamber_markers.png         # Marker gene heatmap
+```
+
+## Scientific Context
+
+### Known Chamber-Specific Markers
+
+<AccordionGroup>
+  <Accordion title="Right Atrium (RA)">
+    - **NPPA**: Atrial natriuretic peptide
+    - **MIR100HG**: microRNA host gene
+    - **MYL7**: Myosin light chain 7
+    - **PDE4D**: Phosphodiesterase 4D
+  </Accordion>
+
+  <Accordion title="Right Ventricle (RV)">
+    - **NEAT1**: Nuclear paraspeckle assembly
+    - **MYH7**: Myosin heavy chain 7
+    - **FHL2**: Four and a half LIM domains 2
+    - **PCDH7**: Protocadherin 7
+  </Accordion>
+
+  <Accordion title="Left Atrium (LA)">
+    - **NPPA**: Shared with RA
+    - **ELN**: Elastin
+    - **EBF2**: Early B-cell factor 2
+    - **RORA**: RAR-related orphan receptor A
+  </Accordion>
+
+  <Accordion title="Left Ventricle (LV)">
+    - **CD36**: Fatty acid transporter
+    - **FHL2**: Shared with RV
+    - **MYH7**: Shared with RV
+    - **TTN**: Titin
+  </Accordion>
+</AccordionGroup>
+
+### Expected Correlations
+
+Based on published data:
+- **RV vs LV**: r ≈ 0.985 (highest, both ventricles)
+- **RA vs LA**: r ≈ 0.960 (both atria)
+- **LA vs LV**: r ≈ 0.870 (lowest, different chambers)
+
+## Best Practices
+
+<Card title="Data Quality" icon="check">
+  - Ensure balanced cell numbers across chambers
+  - Minimum 1,000 cells per chamber recommended
+  - Verify chamber annotations are accurate
+</Card>
+
+<Card title="Statistical Power" icon="chart-bar">
+  - Use appropriate multiple testing correction
+  - Consider chamber-specific batch effects
+  - Account for donor-to-donor variation
+</Card>
+
+<Card title="Biological Interpretation" icon="dna">
+  - Validate findings with chamber physiology
+  - Consider functional differences (atria vs ventricles)
+  - Check for known disease markers
+</Card>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Comprehensive Pipeline" icon="sitemap" href="/guides/comprehensive-pipeline">
+    Combine all analyses
+  </Card>
+  
+  <Card title="Visualization" icon="chart-line" href="/guides/visualization">
+    Advanced plotting
+  </Card>
+  
+  <Card title="API Reference" icon="code" href="/api-reference/pipelines/multi-chamber-pipeline">
+    Full documentation
+  </Card>
+</CardGroup>

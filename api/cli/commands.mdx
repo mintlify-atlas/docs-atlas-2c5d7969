@@ -1,0 +1,138 @@
+---
+title: CLI Commands
+description: Command-line interface commands for HeartMAP analysis
+---
+
+## Overview
+
+HeartMAP provides command-line tools for running single-cell RNA-seq analysis pipelines. The main CLI command allows you to analyze data directly from the terminal.
+
+## heartmap
+
+The main command-line interface for running HeartMAP analysis pipelines.
+
+### Usage
+
+```bash
+heartmap <data_path> [OPTIONS]
+```
+
+### Arguments
+
+<ParamField path="data_path" type="string" required>
+  Path to the input data file (typically .h5ad format for AnnData objects).
+  
+  This is a positional argument and must be provided.
+</ParamField>
+
+### Examples
+
+#### Basic Analysis
+
+Run a basic analysis on your data:
+
+```bash
+heartmap data/heart_samples.h5ad --analysis-type basic
+```
+
+**Expected Output:**
+```
+Starting basic analysis...
+Loading data from data/heart_samples.h5ad...
+Preprocessing: QC filtering...
+Normalizing data...
+Identifying highly variable genes...
+Clustering cells...
+Annotating cell types...
+Analysis completed! Results saved to: results
+```
+
+#### Comprehensive Analysis
+
+Run a comprehensive analysis with all pipeline components:
+
+```bash
+heartmap data/heart_samples.h5ad --analysis-type comprehensive --output-dir output/comprehensive
+```
+
+**Expected Output:**
+```
+Starting comprehensive analysis...
+Loading data from data/heart_samples.h5ad...
+Running basic pipeline...
+Analyzing cell-cell communication...
+Performing multi-chamber analysis...
+Generating visualizations...
+Analysis completed! Results saved to: output/comprehensive
+```
+
+#### Multi-Chamber Analysis
+
+Analyze chamber-specific patterns:
+
+```bash
+heartmap data/heart_chambers.h5ad --analysis-type multi_chamber --output-dir chambers_results
+```
+
+**Expected Output:**
+```
+Starting multi_chamber analysis...
+Loading data from data/heart_chambers.h5ad...
+Identifying chamber-specific markers...
+Analyzing chamber composition...
+Detecting chamber-specific cell types...
+Analysis completed! Results saved to: chambers_results
+```
+
+#### Custom Configuration
+
+Use a custom configuration file:
+
+```bash
+heartmap data/heart_samples.h5ad --config config/custom_config.yaml --output-dir custom_results
+```
+
+**Expected Output:**
+```
+Starting comprehensive analysis...
+Loading configuration from config/custom_config.yaml...
+Loading data from data/heart_samples.h5ad...
+Applying custom parameters...
+Analysis completed! Results saved to: custom_results
+```
+
+## Output Structure
+
+The CLI creates an output directory with the following structure:
+
+```
+results/
+├── processed_data.h5ad          # Processed AnnData object
+├── annotation/                   # Cell type annotation results
+│   ├── cell_types.csv
+│   └── markers.csv
+├── communication/                # Cell-cell communication (if applicable)
+│   ├── interactions.csv
+│   └── networks/
+├── multi_chamber/               # Multi-chamber analysis (if applicable)
+│   ├── chamber_markers.csv
+│   └── composition.csv
+├── plots/                       # Visualization outputs
+│   ├── umap.png
+│   ├── cell_types.png
+│   └── ...
+└── logs/                        # Analysis logs
+    └── analysis.log
+```
+
+## Exit Codes
+
+- `0`: Successful completion
+- `1`: General error (invalid arguments, file not found, etc.)
+- `2`: Configuration error (invalid config file)
+
+## See Also
+
+- [CLI Options](/api/cli/options) - Detailed description of all command-line options
+- [Configuration](/api/config/config) - Configuration file format and options
+- [Analysis Types](/concepts/pipelines) - Detailed information about each analysis type

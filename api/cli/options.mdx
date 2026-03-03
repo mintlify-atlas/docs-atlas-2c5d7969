@@ -1,0 +1,275 @@
+---
+title: CLI Options
+description: Command-line options and arguments for HeartMAP CLI
+---
+
+## Overview
+
+This page documents all available command-line options for the `heartmap` command. All options are optional unless marked as required.
+
+## Positional Arguments
+
+<ParamField path="data_path" type="string" required>
+  Path to the input single-cell data file.
+  
+  **Supported formats:**
+  - `.h5ad` - AnnData format (recommended)
+  - `.h5` - HDF5 format
+  
+  **Example:**
+  ```bash
+  heartmap data/heart_samples.h5ad
+  ```
+</ParamField>
+
+## Optional Arguments
+
+### --analysis-type
+
+<ParamField path="--analysis-type" type="string" default="comprehensive">
+  Type of analysis pipeline to run.
+  
+  **Choices:**
+  - `basic` - Basic preprocessing, clustering, and annotation
+  - `advanced` - Advanced communication analysis with ligand-receptor interactions
+  - `multi_chamber` - Multi-chamber specific analysis for cardiac data
+  - `comprehensive` - Complete analysis with all components
+  
+  **Default:** `comprehensive`
+  
+  **Example:**
+  ```bash
+  heartmap data/heart.h5ad --analysis-type basic
+  ```
+</ParamField>
+
+### --output-dir
+
+<ParamField path="--output-dir" type="string" default="results">
+  Output directory for saving analysis results.
+  
+  The directory will be created if it doesn't exist. All output files including processed data, plots, and analysis results will be saved here.
+  
+  **Default:** `results`
+  
+  **Example:**
+  ```bash
+  heartmap data/heart.h5ad --output-dir output/experiment_1
+  ```
+</ParamField>
+
+### --config
+
+<ParamField path="--config" type="string" default="None">
+  Path to a custom configuration file in YAML format.
+  
+  If not provided, default configuration will be used. The config file allows you to customize analysis parameters such as filtering thresholds, normalization methods, and clustering parameters.
+  
+  **Default:** Uses built-in default configuration
+  
+  **Example:**
+  ```bash
+  heartmap data/heart.h5ad --config config/custom.yaml
+  ```
+  
+  **Sample config file:**
+  ```yaml
+  preprocessing:
+    min_genes: 200
+    min_cells: 3
+    max_mito_pct: 20
+  
+  clustering:
+    resolution: 0.8
+    n_neighbors: 15
+  
+  annotation:
+    method: "auto"
+  ```
+</ParamField>
+
+### -h, --help
+
+<ParamField path="--help" type="flag">
+  Show help message and exit.
+  
+  **Example:**
+  ```bash
+  heartmap --help
+  ```
+  
+  **Output:**
+  ```
+  usage: heartmap [-h] [--analysis-type {basic,advanced,multi_chamber,comprehensive}]
+                  [--output-dir OUTPUT_DIR] [--config CONFIG]
+                  data_path
+
+  HeartMAP Analysis Platform
+
+  positional arguments:
+    data_path             Path to input data file
+
+  optional arguments:
+    -h, --help            show this help message and exit
+    --analysis-type {basic,advanced,multi_chamber,comprehensive}
+                          Type of analysis to run
+    --output-dir OUTPUT_DIR
+                          Output directory for results
+    --config CONFIG       Path to configuration file
+  ```
+</ParamField>
+
+## Usage Examples
+
+### Minimal Command
+
+Run with all default settings:
+
+```bash
+heartmap data/heart_samples.h5ad
+```
+
+This will:
+- Run comprehensive analysis (default)
+- Save results to `./results` (default)
+- Use default configuration
+
+### Complete Command
+
+Specify all options:
+
+```bash
+heartmap data/heart_samples.h5ad \
+  --analysis-type multi_chamber \
+  --output-dir results/chamber_analysis \
+  --config config/strict_filtering.yaml
+```
+
+### Analysis Type Comparison
+
+#### Basic Analysis
+```bash
+heartmap data/heart.h5ad --analysis-type basic --output-dir results/basic
+```
+- **Duration:** ~5-10 minutes (for typical dataset)
+- **Includes:** QC, normalization, clustering, basic annotation
+- **Output size:** ~100-500 MB
+
+#### Advanced Analysis
+```bash
+heartmap data/heart.h5ad --analysis-type advanced --output-dir results/advanced
+```
+- **Duration:** ~15-30 minutes
+- **Includes:** Basic analysis + cell-cell communication analysis
+- **Output size:** ~500 MB - 1 GB
+
+#### Multi-Chamber Analysis
+```bash
+heartmap data/heart.h5ad --analysis-type multi_chamber --output-dir results/chambers
+```
+- **Duration:** ~20-40 minutes
+- **Includes:** Chamber-specific marker identification and composition analysis
+- **Output size:** ~500 MB - 1 GB
+
+#### Comprehensive Analysis
+```bash
+heartmap data/heart.h5ad --analysis-type comprehensive --output-dir results/full
+```
+- **Duration:** ~30-60 minutes
+- **Includes:** All analysis components (basic + advanced + multi-chamber)
+- **Output size:** 1-2 GB
+
+## Configuration File Format
+
+The `--config` option accepts YAML configuration files. Here's a complete example:
+
+```yaml
+# Quality Control Parameters
+preprocessing:
+  min_genes: 200          # Minimum genes per cell
+  min_cells: 3            # Minimum cells expressing a gene
+  max_mito_pct: 20        # Maximum mitochondrial percentage
+  max_genes: 6000         # Maximum genes per cell
+
+# Normalization
+normalization:
+  target_sum: 10000       # Target sum for normalization
+  log_transform: true     # Apply log transformation
+
+# Clustering
+clustering:
+  method: "leiden"        # Clustering method
+  resolution: 0.8         # Resolution parameter
+  n_neighbors: 15         # Number of neighbors for graph
+  n_pcs: 50              # Number of principal components
+
+# Annotation
+annotation:
+  method: "auto"          # Annotation method
+  reference: null         # Path to reference dataset (optional)
+
+# Communication Analysis
+communication:
+  methods:
+    - "liana"
+    - "cellphonedb"
+  threshold: 0.05         # P-value threshold
+
+# Multi-chamber Analysis
+multi_chamber:
+  chamber_key: "chamber"  # Metadata key for chamber information
+  min_cells_per_chamber: 100
+
+# Output
+output:
+  save_plots: true
+  plot_format: "png"
+  save_h5ad: true
+```
+
+## Environment Variables
+
+HeartMAP CLI respects the following environment variables:
+
+- `HEARTMAP_CONFIG`: Default configuration file path
+- `HEARTMAP_DATA_DIR`: Default data directory
+- `HEARTMAP_CACHE_DIR`: Cache directory for downloaded resources
+
+**Example:**
+```bash
+export HEARTMAP_CONFIG="$HOME/.config/heartmap/config.yaml"
+export HEARTMAP_CACHE_DIR="$HOME/.cache/heartmap"
+heartmap data/heart.h5ad
+```
+
+## Common Issues
+
+### File Not Found
+```bash
+heartmap nonexistent.h5ad
+```
+**Error:** `FileNotFoundError: nonexistent.h5ad not found`
+
+**Solution:** Verify the file path is correct and the file exists.
+
+### Invalid Analysis Type
+```bash
+heartmap data/heart.h5ad --analysis-type invalid
+```
+**Error:** `error: argument --analysis-type: invalid choice: 'invalid'`
+
+**Solution:** Use one of the valid choices: basic, advanced, multi_chamber, or comprehensive.
+
+### Invalid Configuration
+```bash
+heartmap data/heart.h5ad --config bad_config.yaml
+```
+**Error:** `ConfigurationError: Invalid configuration file`
+
+**Solution:** Check your YAML syntax and ensure all required fields are present.
+
+## See Also
+
+- [CLI Commands](/api/cli/commands) - Overview of CLI commands and examples
+- [Python API](/examples/python-api) - Using HeartMAP from Python
+- [Configuration Reference](/api/config/config) - Complete configuration documentation

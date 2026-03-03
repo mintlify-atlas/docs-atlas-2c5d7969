@@ -1,0 +1,481 @@
+---
+title: 'Chamber-Specific Analysis'
+description: 'Understanding cardiac chamber heterogeneity and chamber-specific patterns'
+icon: 'heart'
+---
+
+## What Makes Chamber Analysis Unique?
+
+The human heart consists of four distinct chambers, each with specialized cellular composition and molecular profiles that reflect their unique physiological roles:
+
+- **RA (Right Atrium):** Receives deoxygenated blood from the body
+- **RV (Right Ventricle):** Pumps blood to the lungs
+- **LA (Left Atrium):** Receives oxygenated blood from the lungs  
+- **LV (Left Ventricle):** Pumps blood to the entire body
+
+<Info>
+Unlike general single-cell tools, HeartMAP is purpose-built to analyze these chamber-specific differences, enabling precision cardiology approaches and chamber-targeted therapeutic strategies.
+</Info>
+
+## The Four Chambers
+
+<CardGroup cols={2}>
+  <Card title="Right Atrium (RA)" icon="heart" color="#FF6B6B">
+    **28.4% of heart cells**
+    
+    Blood collection from systemic circulation, initiates cardiac electrical signals
+  </Card>
+  
+  <Card title="Right Ventricle (RV)" icon="heart-pulse" color="#4ECDC4">
+    **18.2% of heart cells**
+    
+    Low-pressure pump to pulmonary circulation
+  </Card>
+  
+  <Card title="Left Atrium (LA)" icon="heart" color="#95E1D3">
+    **26.4% of heart cells**
+    
+    Receives oxygenated blood, atrial compliance critical
+  </Card>
+  
+  <Card title="Left Ventricle (LV)" icon="heart-pulse" color="#F38181">
+    **27.0% of heart cells**
+    
+    High-pressure pump to systemic circulation, thickest walls
+  </Card>
+</CardGroup>
+
+## Chamber-Specific Markers
+
+Each chamber exhibits unique molecular signatures that can be identified through differential expression analysis.
+
+### Right Atrium (RA)
+
+<Tabs>
+  <Tab title="Top Markers">
+    **NPPA** - Natriuretic Peptide A
+    - Hormone regulating blood pressure and volume
+    - Highly expressed in atrial cardiomyocytes
+    - Clinical biomarker for heart failure
+
+    **MIR100HG** - MicroRNA 100 Host Gene
+    - Non-coding RNA involved in cardiac development
+    - Regulatory role in cardiomyocyte function
+
+    **MYL7** - Myosin Light Chain 7 (Atrial)
+    - Atrial-specific contractile protein
+    - Distinguishes atrial from ventricular myocytes
+
+    **MYL4** - Myosin Light Chain 4 (Atrial)
+    - Another atrial contractile marker
+    - Co-expressed with MYL7
+
+    **PDE4D** - Phosphodiesterase 4D
+    - Regulates cAMP signaling
+    - Important for atrial rhythm regulation
+  </Tab>
+  
+  <Tab title="Functional Significance">
+    **Key Characteristics:**
+    - Natriuretic peptide production
+    - Electrical signal initiation (SA node)
+    - Blood volume sensing
+    - Endocrine function
+
+    **Clinical Relevance:**
+    - Atrial fibrillation susceptibility
+    - Heart failure biomarkers
+    - Therapeutic targets for hypertension
+  </Tab>
+</Tabs>
+
+### Right Ventricle (RV)
+
+<Tabs>
+  <Tab title="Top Markers">
+    **NEAT1** - Nuclear Paraspeckle Assembly Transcript 1
+    - Long non-coding RNA
+    - Stress response and RNA processing
+    - Higher in RV due to pulmonary circulation demands
+
+    **MYH7** - Beta-Myosin Heavy Chain
+    - Slow-twitch myosin isoform
+    - Higher in RV compared to fetal MYH6
+    - Efficiency over speed
+
+    **FHL2** - Four and a Half LIM Domains 2
+    - Mechanosensing and signaling
+    - Responds to wall stress
+    - Important for RV adaptation
+
+    **C15orf41** - Chromosome 15 Open Reading Frame 41
+    - RV-specific expression
+    - Function still under investigation
+
+    **PCDH7** - Protocadherin 7
+    - Cell adhesion molecule
+    - Cardiac development and structure
+  </Tab>
+  
+  <Tab title="Functional Significance">
+    **Key Characteristics:**
+    - Low-pressure, high-volume pumping
+    - Thin walls compared to LV
+    - Crescent shape
+    - Pulmonary circulation support
+
+    **Clinical Relevance:**
+    - Pulmonary hypertension effects
+    - RV failure distinct from LV failure
+    - Congenital heart disease
+  </Tab>
+</Tabs>
+
+### Left Atrium (LA)
+
+<Tabs>
+  <Tab title="Top Markers">
+    **NPPA** - Natriuretic Peptide A
+    - Shared with RA, but expression patterns differ
+    - Response to pressure/volume changes
+
+    **ELN** - Elastin
+    - Provides compliance and elasticity
+    - Critical for LA distensibility
+    - Higher than other chambers
+
+    **MYL7** - Myosin Light Chain 7
+    - Atrial marker (shared with RA)
+    - Contractile function
+
+    **EBF2** - Early B-Cell Factor 2
+    - Transcription factor
+    - Cardiac development
+    - LA-specific expression pattern
+
+    **RORA** - RAR Related Orphan Receptor A
+    - Nuclear receptor
+    - Circadian rhythm and metabolism
+    - Cardiac transcriptional regulation
+  </Tab>
+  
+  <Tab title="Functional Significance">
+    **Key Characteristics:**
+    - Higher compliance (ELN expression)
+    - Pressure regulation before LV
+    - Pulmonary vein connections
+    - Booster pump function
+
+    **Clinical Relevance:**
+    - Atrial fibrillation origin site
+    - Stroke risk (thrombus formation)
+    - LA enlargement in heart failure
+  </Tab>
+</Tabs>
+
+### Left Ventricle (LV)
+
+<Tabs>
+  <Tab title="Top Markers">
+    **CD36** - Fatty Acid Translocase
+    - Major fatty acid uptake protein
+    - High metabolic demand of LV
+    - Energy substrate preference
+
+    **LINC00486** - Long Intergenic Non-Protein Coding RNA 486
+    - LV-specific non-coding RNA
+    - Regulatory functions
+    - Ventricular identity
+
+    **FHL2** - Four and a Half LIM Domains 2
+    - Shared with RV, but higher in LV
+    - Wall stress sensing
+    - Hypertrophic response
+
+    **RP11-532N4.2** - LV-Specific Long Non-Coding RNA
+    - Chamber identity marker
+    - Transcriptional regulation
+
+    **MYH7** - Beta-Myosin Heavy Chain
+    - Predominant isoform in adult LV
+    - Efficient, sustained contractions
+    - Shifts in disease states
+  </Tab>
+  
+  <Tab title="Functional Significance">
+    **Key Characteristics:**
+    - Highest metabolic demand (CD36)
+    - Thickest walls (high afterload)
+    - Greatest mechanical stress
+    - Systemic circulation support
+
+    **Clinical Relevance:**
+    - Most common site of heart failure
+    - Myocardial infarction
+    - LV hypertrophy
+    - Therapeutic target priority
+  </Tab>
+</Tabs>
+
+## Cross-Chamber Correlations
+
+HeartMAP analyzes expression pattern similarities between chambers to reveal functional relationships.
+
+### Correlation Matrix
+
+<Note>
+Based on analysis of 287,269 cells from 7 healthy human hearts (SCP498 dataset)
+</Note>
+
+| Chamber Pair | Correlation (r) | Interpretation |
+|--------------|----------------|----------------|
+| **RV vs LV** | 0.985 | Highest similarity - both are ventricles with similar contractile machinery |
+| **RA vs LA** | 0.960 | High similarity - both are atria with shared structural features |
+| **RA vs RV** | 0.920 | Moderate-high - right-side chambers, shared circulation |
+| **LA vs RV** | 0.895 | Moderate - different sides and functions |
+| **RA vs LV** | 0.880 | Moderate - different sides, atrium vs ventricle |
+| **LA vs LV** | 0.870 | Lowest - same side but greatest functional specialization |
+
+### Key Insights
+
+<AccordionGroup>
+  <Accordion title="Ventricles Show High Similarity (RV vs LV: r=0.985)">
+    Despite different workloads:
+    - Shared contractile protein genes (MYH7, FHL2)
+    - Similar metabolic programs
+    - Common response to mechanical stress
+    - Both use beta-myosin for efficiency
+
+    **Implication:** Ventricular therapies may be broadly applicable, but dosing may differ due to wall thickness differences.
+  </Accordion>
+
+  <Accordion title="Atria Show High Similarity (RA vs LA: r=0.960)">
+    Common atrial features:
+    - NPPA/NPPB natriuretic peptide expression
+    - Atrial-specific contractile proteins (MYL7, MYL4)
+    - Thinner walls, compliance-focused
+    - Electrical conduction properties
+
+    **Implication:** Atrial fibrillation therapies may benefit both atria, but LA-specific ablation often needed.
+  </Accordion>
+
+  <Accordion title="LA vs LV Shows Lowest Correlation (r=0.870)">
+    Despite being on the same (left) side:
+    - LA: compliance (ELN), atrial contractile proteins
+    - LV: power (CD36, metabolic genes), ventricular proteins
+    - Different mechanical stress profiles
+    - Divergent transcriptional programs
+
+    **Implication:** Left-sided heart failure requires chamber-specific therapeutic approaches.
+  </Accordion>
+
+  <Accordion title="Same-Side Chambers Have Moderate Correlations">
+    Right side (RA-RV): r=0.920
+    - Shared deoxygenated blood
+    - Similar oxygen tension
+    - Common congenital defects
+
+    Left side (LA-LV): r=0.870 (lowest)
+    - Oxygenated blood
+    - Higher metabolic demands
+    - Greater functional divergence
+
+    **Implication:** Right-sided heart failure progression differs from left-sided.
+  </Accordion>
+</AccordionGroup>
+
+## Chamber-Specific Cell Populations
+
+Each chamber contains different proportions of cell types:
+
+<Tabs>
+  <Tab title="All Chambers">
+    **Common Cell Types:**
+    - Cardiomyocytes (chamber-specific subtypes)
+    - Endothelial cells (vascular lining)
+    - Fibroblasts (structural support)
+    - Immune cells (macrophages, T cells)
+    - Pericytes (vascular support)
+  </Tab>
+  
+  <Tab title="Atrial-Enriched">
+    **RA & LA Specific:**
+    - Atrial cardiomyocytes (MYL7+, NPPA+)
+    - Specialized conduction cells (SA node in RA)
+    - Adipocytes (more abundant in atria)
+    - Epicardial cells
+  </Tab>
+  
+  <Tab title="Ventricular-Enriched">
+    **RV & LV Specific:**
+    - Ventricular cardiomyocytes (MYH7+, larger)
+    - Purkinje fibers (specialized conduction)
+    - Higher fibroblast density (more ECM)
+    - More capillaries (higher O2 demand)
+  </Tab>
+</Tabs>
+
+## Running Chamber Analysis
+
+### Using MultiChamberPipeline
+
+```python
+from heartmap import Config
+from heartmap.pipelines import MultiChamberPipeline
+
+# Initialize configuration
+config = Config.default()
+config.analysis.n_marker_genes = 25  # Top markers per chamber
+
+# Create pipeline
+pipeline = MultiChamberPipeline(config)
+
+# Run analysis (requires 'chamber' column in adata.obs)
+results = pipeline.run(
+    data_path='data/multi_chamber_heart.h5ad',
+    output_dir='results/chamber_analysis'
+)
+
+# Access chamber-specific markers
+chamber_markers = results['results']['chamber_markers']
+
+for chamber in ['RA', 'RV', 'LA', 'LV']:
+    markers = chamber_markers[chamber]
+    print(f"\n{chamber} top markers:")
+    for gene in markers[:5]:
+        print(f"  - {gene}")
+```
+
+### Required Data Format
+
+Your AnnData object must contain chamber labels:
+
+```python
+import scanpy as sc
+
+# Load your data
+adata = sc.read_h5ad('heart_data.h5ad')
+
+# Must have chamber annotations
+print(adata.obs['chamber'].unique())
+# Expected output: ['RA', 'RV', 'LA', 'LV']
+
+# Or alternative column names
+# 'location', 'heart_chamber', 'cardiac_chamber'
+```
+
+### Output Interpretation
+
+<Steps>
+  <Step title="Chamber Markers">
+    Differentially expressed genes per chamber:
+    ```python
+    chamber_markers = {
+        'RA': ['NPPA', 'MYL7', 'MYL4', ...],
+        'RV': ['NEAT1', 'MYH7', 'FHL2', ...],
+        'LA': ['NPPA', 'ELN', 'RORA', ...],
+        'LV': ['CD36', 'FHL2', 'MYH7', ...]
+    }
+    ```
+  </Step>
+  
+  <Step title="Cross-Chamber Correlations">
+    Expression correlation matrix:
+    ```python
+    correlations = pd.DataFrame({
+        'RA': [1.00, 0.92, 0.96, 0.88],
+        'RV': [0.92, 1.00, 0.90, 0.99],
+        'LA': [0.96, 0.90, 1.00, 0.87],
+        'LV': [0.88, 0.99, 0.87, 1.00]
+    }, index=['RA', 'RV', 'LA', 'LV'])
+    ```
+  </Step>
+  
+  <Step title="Visualizations">
+    Automatically generated:
+    - `chamber_composition.png` - Cell type distribution per chamber
+    - `chamber_markers.png` - Heatmap of marker expression
+    - `chamber_correlations.png` - Correlation network diagram
+  </Step>
+</Steps>
+
+## Clinical Applications
+
+<CardGroup cols={2}>
+  <Card title="Precision Cardiology" icon="bullseye">
+    **Chamber-Specific Therapies:**
+    - LA ablation for atrial fibrillation
+    - LV-targeted drugs for heart failure
+    - RV-specific treatments for pulmonary hypertension
+  </Card>
+  
+  <Card title="Drug Target Discovery" icon="pills">
+    **Chamber-Specific Targets:**
+    - NPPA pathway modulation (atria)
+    - CD36 for LV metabolic support
+    - FHL2 for mechanosensing
+  </Card>
+  
+  <Card title="Disease Mechanisms" icon="disease">
+    **Understanding Progression:**
+    - Why LV failure is most common
+    - LA enlargement in AF
+    - RV failure in pulmonary disease
+  </Card>
+  
+  <Card title="Biomarker Development" icon="vial">
+    **Chamber-Specific Markers:**
+    - NPPA for atrial stretch
+    - Troponins for ventricular damage
+    - Chamber-specific RNA signatures
+  </Card>
+</CardGroup>
+
+## Advanced: Custom Chamber Analysis
+
+For custom chamber comparisons:
+
+```python
+import scanpy as sc
+import pandas as pd
+
+# Load data
+adata = sc.read_h5ad('results/chamber_analysis/heartmap_complete.h5ad')
+
+# Custom comparison: Compare left vs right side
+left_chambers = adata[adata.obs['chamber'].isin(['LA', 'LV'])]
+right_chambers = adata[adata.obs['chamber'].isin(['RA', 'RV'])]
+
+# Differential expression
+sc.tl.rank_genes_groups(
+    adata,
+    groupby='chamber',
+    groups=['LA', 'LV'],
+    reference='RA',
+    method='wilcoxon'
+)
+
+# Extract markers
+left_markers = sc.get.rank_genes_groups_df(adata, group='LA')
+print(left_markers.head(10))
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Cell Communication" icon="network-wired" href="/concepts/cell-communication">
+    Analyze chamber-specific communication networks
+  </Card>
+  
+  <Card title="Configuration" icon="gear" href="/concepts/configuration">
+    Optimize chamber analysis parameters
+  </Card>
+</CardGroup>
+
+## References
+
+<Note>
+**Primary Study:** Kgabeng, T., et al. (2025). HeartMAP: A Multi-Chamber Spatial Framework for Cardiac Cell-Cell Communication. *Computational and Structural Biotechnology Journal*.
+
+**Dataset:** Single Cell Portal SCP498 - 287,269 cells from 7 healthy human heart donors
+</Note>

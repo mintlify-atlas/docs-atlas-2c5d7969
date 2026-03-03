@@ -1,0 +1,533 @@
+---
+title: 'Visualization Guide'
+description: 'Advanced visualization techniques and customization for HeartMAP analyses'
+---
+
+# Visualization in HeartMAP
+
+HeartMAP provides comprehensive visualization utilities through the `Visualizer` class and integration with scanpy plotting functions.
+
+## Built-in Visualizations
+
+All pipelines automatically generate visualizations in the `figures/` subdirectory.
+
+### Basic Analysis Visualizations
+
+<Steps>
+
+### QC Metrics Plots
+
+Generated automatically by `BasicPipeline`:
+
+```python
+from heartmap import Config
+from heartmap.pipelines import BasicPipeline
+
+config = Config.default()
+pipeline = BasicPipeline(config)
+results = pipeline.run('data.h5ad', 'results/basic')
+
+# QC plots are saved at: results/basic/figures/qc_metrics.png
+# Includes:
+# - Genes per cell distribution
+# - UMI per cell distribution
+# - Mitochondrial percentage
+# - Genes vs UMI scatter
+```
+
+### UMAP Cluster Plots
+
+```python
+import scanpy as sc
+import matplotlib.pyplot as plt
+
+adata = results['adata']
+
+# Basic UMAP with clusters
+sc.pl.umap(adata, color='leiden',
+           legend_loc='on data',
+           title='Cell Type Clusters',
+           frameon=False,
+           save='_clusters.png')
+
+# UMAP with multiple annotations
+sc.pl.umap(adata,
+           color=['leiden', 'n_genes', 'total_counts'],
+           ncols=3,
+           cmap='viridis',
+           save='_multi_annotated.png')
+```
+
+### Customize UMAP Appearance
+
+```python
+# Custom colors for clusters
+from matplotlib.colors import ListedColormap
+
+custom_palette = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
+                  '#FFEAA7', '#DFE6E9', '#74B9FF', '#A29BFE']
+
+sc.pl.umap(adata, color='leiden',
+           palette=custom_palette,
+           size=10,  # Point size
+           alpha=0.8,  # Transparency
+           legend_fontsize=12,
+           legend_loc='right margin',
+           save='_custom_colors.png')
+
+# High-quality figure
+sc.settings.set_figure_params(dpi=300, 
+                              frameon=False,
+                              figsize=(10, 8))
+sc.pl.umap(adata, color='leiden', show=False)
+plt.savefig('results/umap_highres.png', 
+            dpi=300, bbox_inches='tight')
+```
+
+</Steps>
+
+## Communication Visualizations
+
+### Communication Heatmap
+
+```python
+from heartmap.utils import Visualizer
+from pathlib import Path
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Load communication scores
+comm_scores = pd.read_csv('results/communication/tables/communication_scores.csv')
+
+# Create pivot table
+pivot = comm_scores.pivot_table(
+    values='communication_score',
+    index='source',
+    columns='target',
+    aggfunc='sum',
+    fill_value=0
+)
+
+# Plot heatmap
+plt.figure(figsize=(12, 10))
+sns.heatmap(pivot,
+            annot=True,
+            fmt='.2f',
+            cmap='YlOrRd',
+            linewidths=0.5,
+            cbar_kws={'label': 'Communication Score'})
+plt.title('Cell-Cell Communication Matrix', fontsize=16, pad=20)
+plt.xlabel('Target Cell Type', fontsize=12)
+plt.ylabel('Source Cell Type', fontsize=12)
+plt.tight_layout()
+plt.savefig('results/communication/custom_heatmap.png', dpi=300)
+plt.close()
+```
+
+### Hub Score Visualization
+
+```python
+import scanpy as sc
+import matplotlib.pyplot as plt
+
+adata = sc.read_h5ad('results/communication/annotated_data.h5ad')
+
+# Hub scores on UMAP
+sc.pl.umap(adata, color='hub_score',
+           cmap='plasma',
+           vmin=0,
+           title='Communication Hub Scores',
+           color_map='plasma',
+           save='_hub_scores.png')
+
+# Hub scores by cell type
+hub_by_type = adata.obs.groupby('leiden')['hub_score'].mean().sort_values()
+
+fig, ax = plt.subplots(figsize=(10, 6))
+hub_by_type.plot(kind='barh', ax=ax, color='steelblue')
+ax.set_xlabel('Mean Hub Score', fontsize=12)
+ax.set_ylabel('Cell Type Cluster', fontsize=12)
+ax.set_title('Communication Hub Scores by Cell Type', fontsize=14)
+plt.tight_layout()
+plt.savefig('results/communication/hub_by_type.png', dpi=300)
+plt.close()
+```
+
+### Network Graph Visualization
+
+```python
+import networkx as nx
+import matplotlib.pyplot as plt
+import pandas as pd
+
+# Create network from communication scores
+comm_scores = pd.read_csv('results/communication/tables/communication_scores.csv')
+
+# Aggregate scores between cell types
+edge_weights = comm_scores.groupby(['source', 'target'])['communication_score'].sum()
+
+# Build graph
+G = nx.DiGraph()
+for (source, target), weight in edge_weights.items():
+    if weight > 0.5:  # Threshold for visualization
+        G.add_edge(source, target, weight=weight)
+
+# Layout
+pos = nx.spring_layout(G, k=2, iterations=50, seed=42)
+
+# Draw
+fig, ax = plt.subplots(figsize=(14, 10))
+
+# Edges
+edges = G.edges()
+weights = [G[u][v]['weight'] for u, v in edges]
+nx.draw_networkx_edges(G, pos,
+                       width=[w*2 for w in weights],
+                       alpha=0.6,
+                       edge_color='gray',
+                       arrows=True,
+                       arrowsize=20,
+                       ax=ax)
+
+# Nodes
+nx.draw_networkx_nodes(G, pos,
+                       node_size=1000,
+                       node_color='lightblue',
+                       edgecolors='darkblue',
+                       linewidths=2,
+                       ax=ax)
+
+# Labels
+nx.draw_networkx_labels(G, pos,
+                        font_size=10,
+                        font_weight='bold',
+                        ax=ax)
+
+ax.set_title('Cell-Cell Communication Network', fontsize=16)
+ax.axis('off')
+plt.tight_layout()
+plt.savefig('results/communication/network_graph.png', dpi=300)
+plt.close()
+```
+
+## Multi-Chamber Visualizations
+
+### Chamber Composition
+
+```python
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+
+adata = sc.read_h5ad('results/multi_chamber/data.h5ad')
+
+# Composition by chamber
+composition = pd.crosstab(
+    adata.obs['leiden'],
+    adata.obs['chamber'],
+    normalize='columns'
+) * 100
+
+# Stacked bar chart
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
+
+# Stacked bars
+composition.T.plot(kind='bar', 
+                   stacked=True, 
+                   ax=ax1,
+                   colormap='tab20')
+ax1.set_title('Cell Type Composition by Chamber', fontsize=14)
+ax1.set_xlabel('Chamber', fontsize=12)
+ax1.set_ylabel('Percentage of Cells', fontsize=12)
+ax1.legend(title='Cluster', bbox_to_anchor=(1.05, 1), loc='upper left')
+
+# Grouped bars (top 5 clusters)
+top_5_clusters = composition.sum(axis=1).nlargest(5).index
+composition.loc[top_5_clusters].T.plot(kind='bar',
+                                        ax=ax2)
+ax2.set_title('Top 5 Cell Types Across Chambers', fontsize=14)
+ax2.set_xlabel('Chamber', fontsize=12)
+ax2.set_ylabel('Percentage', fontsize=12)
+ax2.legend(title='Cluster')
+
+plt.tight_layout()
+plt.savefig('results/multi_chamber/composition_detailed.png', dpi=300)
+plt.close()
+```
+
+### Chamber-Specific UMAPs
+
+```python
+import scanpy as sc
+import matplotlib.pyplot as plt
+
+adata = sc.read_h5ad('results/multi_chamber/data.h5ad')
+
+# Create chamber-specific subplots
+fig, axes = plt.subplots(2, 2, figsize=(16, 14))
+chambers = ['RA', 'RV', 'LA', 'LV']
+
+for idx, (chamber, ax) in enumerate(zip(chambers, axes.flatten())):
+    # Subset for chamber
+    chamber_adata = adata[adata.obs['chamber'] == chamber]
+    
+    # Plot
+    sc.pl.umap(chamber_adata,
+               color='leiden',
+               ax=ax,
+               show=False,
+               frameon=False,
+               title=f'{chamber} - {chamber_adata.n_obs} cells')
+
+plt.suptitle('Chamber-Specific Cell Type Distribution', 
+             fontsize=16, y=0.995)
+plt.tight_layout()
+plt.savefig('results/multi_chamber/chamber_umaps.png', dpi=300)
+plt.close()
+```
+
+### Cross-Chamber Correlation Heatmap
+
+```python
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from scipy.stats import pearsonr
+
+adata = sc.read_h5ad('results/multi_chamber/data.h5ad')
+
+# Calculate chamber profiles
+chambers = ['RA', 'RV', 'LA', 'LV']
+chamber_profiles = {}
+
+for chamber in chambers:
+    mask = adata.obs['chamber'] == chamber
+    if hasattr(adata.X, 'toarray'):
+        mean_expr = np.asarray(adata.X[mask].mean(axis=0)).flatten()
+    else:
+        mean_expr = adata.X[mask].mean(axis=0)
+    chamber_profiles[chamber] = mean_expr
+
+# Correlation matrix
+corr_matrix = pd.DataFrame(index=chambers, columns=chambers, dtype=float)
+
+for ch1 in chambers:
+    for ch2 in chambers:
+        if ch1 == ch2:
+            corr_matrix.loc[ch1, ch2] = 1.0
+        else:
+            corr, _ = pearsonr(chamber_profiles[ch1], chamber_profiles[ch2])
+            corr_matrix.loc[ch1, ch2] = corr
+
+# Plot
+fig, ax = plt.subplots(figsize=(8, 7))
+sns.heatmap(corr_matrix.astype(float),
+            annot=True,
+            fmt='.3f',
+            cmap='RdYlBu_r',
+            center=0.9,
+            vmin=0.85,
+            vmax=1.0,
+            square=True,
+            linewidths=1,
+            cbar_kws={'label': 'Pearson Correlation'},
+            ax=ax)
+ax.set_title('Cross-Chamber Expression Correlations', fontsize=14, pad=15)
+plt.tight_layout()
+plt.savefig('results/multi_chamber/correlations_custom.png', dpi=300)
+plt.close()
+
+print("Correlation matrix:")
+print(corr_matrix)
+```
+
+## Advanced Customization
+
+### Multi-Panel Figures
+
+```python
+import scanpy as sc
+import matplotlib.pyplot as plt
+
+adata = sc.read_h5ad('results/comprehensive/heartmap_complete.h5ad')
+
+# Create comprehensive figure
+fig = plt.figure(figsize=(20, 12))
+gs = fig.add_gridspec(3, 4, hspace=0.3, wspace=0.3)
+
+# Panel 1: UMAP by cluster
+ax1 = fig.add_subplot(gs[0, :2])
+sc.pl.umap(adata, color='leiden', ax=ax1, show=False, frameon=False)
+ax1.set_title('A. Cell Type Clusters', fontsize=14, fontweight='bold')
+
+# Panel 2: UMAP by chamber
+ax2 = fig.add_subplot(gs[0, 2:])
+if 'chamber' in adata.obs.columns:
+    sc.pl.umap(adata, color='chamber', ax=ax2, show=False, frameon=False)
+    ax2.set_title('B. Chamber Distribution', fontsize=14, fontweight='bold')
+
+# Panel 3: Hub scores
+ax3 = fig.add_subplot(gs[1, :2])
+if 'hub_score' in adata.obs.columns:
+    sc.pl.umap(adata, color='hub_score', ax=ax3, 
+               show=False, frameon=False, cmap='plasma')
+    ax3.set_title('C. Communication Hubs', fontsize=14, fontweight='bold')
+
+# Panel 4: QC violin plots
+ax4 = fig.add_subplot(gs[1, 2:])
+sc.pl.violin(adata, ['n_genes', 'total_counts'],
+             jitter=0.4, ax=ax4, show=False)
+ax4.set_title('D. QC Metrics', fontsize=14, fontweight='bold')
+
+# Panel 5: Cluster composition
+ax5 = fig.add_subplot(gs[2, :])
+cluster_counts = adata.obs['leiden'].value_counts().sort_index()
+ax5.bar(range(len(cluster_counts)), cluster_counts.values, color='steelblue')
+ax5.set_xlabel('Cluster', fontsize=12)
+ax5.set_ylabel('Number of Cells', fontsize=12)
+ax5.set_title('E. Cluster Sizes', fontsize=14, fontweight='bold')
+
+plt.suptitle('HeartMAP Comprehensive Analysis Overview',
+             fontsize=18, fontweight='bold', y=0.995)
+plt.savefig('results/comprehensive_figure.png', dpi=300, bbox_inches='tight')
+plt.close()
+```
+
+### Interactive Plots with Plotly
+
+```python
+import plotly.express as px
+import plotly.graph_objects as go
+import pandas as pd
+
+# Extract UMAP coordinates
+umap_df = pd.DataFrame(
+    adata.obsm['X_umap'],
+    columns=['UMAP1', 'UMAP2'],
+    index=adata.obs_names
+)
+umap_df['cluster'] = adata.obs['leiden'].values
+umap_df['n_genes'] = adata.obs['n_genes'].values
+if 'chamber' in adata.obs.columns:
+    umap_df['chamber'] = adata.obs['chamber'].values
+
+# Interactive scatter plot
+fig = px.scatter(
+    umap_df,
+    x='UMAP1',
+    y='UMAP2',
+    color='cluster',
+    hover_data=['n_genes', 'chamber'] if 'chamber' in umap_df.columns else ['n_genes'],
+    title='Interactive Cell Type UMAP',
+    width=1000,
+    height=800
+)
+
+fig.update_traces(marker=dict(size=3, opacity=0.6))
+fig.update_layout(
+    font=dict(size=14),
+    title_font_size=18
+)
+
+fig.write_html('results/interactive_umap.html')
+print("Interactive plot saved to: results/interactive_umap.html")
+```
+
+### Publication-Quality Figures
+
+```python
+import matplotlib.pyplot as plt
+import scanpy as sc
+
+# Set publication parameters
+sc.settings.set_figure_params(
+    dpi=300,
+    dpi_save=300,
+    frameon=False,
+    figsize=(6, 5),
+    facecolor='white'
+)
+
+plt.rcParams.update({
+    'font.size': 12,
+    'font.family': 'Arial',
+    'axes.linewidth': 1.5,
+    'xtick.major.width': 1.5,
+    'ytick.major.width': 1.5,
+    'pdf.fonttype': 42,  # TrueType fonts for PDF
+    'ps.fonttype': 42
+})
+
+# Create figure
+fig, ax = plt.subplots(figsize=(6, 5))
+sc.pl.umap(adata, color='leiden',
+           ax=ax,
+           show=False,
+           frameon=False,
+           legend_loc='on data',
+           legend_fontsize=10)
+
+ax.set_xlabel('UMAP 1', fontsize=14, fontweight='bold')
+ax.set_ylabel('UMAP 2', fontsize=14, fontweight='bold')
+ax.set_title('Cell Type Annotation', fontsize=16, fontweight='bold', pad=15)
+
+# Save in multiple formats
+for fmt in ['png', 'pdf', 'svg']:
+    plt.savefig(f'results/publication_figure.{fmt}',
+                dpi=300, bbox_inches='tight')
+
+plt.close()
+print("Publication figures saved")
+```
+
+## Configuration
+
+<ParamField path="dpi" type="int" default="300">
+  Resolution for raster images
+</ParamField>
+
+<ParamField path="figsize" type="tuple" default="(10, 8)">
+  Default figure size (width, height) in inches
+</ParamField>
+
+<ParamField path="frameon" type="bool" default="false">
+  Whether to draw frame around plots
+</ParamField>
+
+## Best Practices
+
+<Card title="Figure Quality" icon="image">
+  - Use DPI 300+ for publications
+  - Save in vector formats (PDF, SVG) when possible
+  - Use colorblind-friendly palettes
+</Card>
+
+<Card title="Color Schemes" icon="palette">
+  - Use consistent colors across figures
+  - Avoid red-green combinations
+  - Consider grayscale printing
+</Card>
+
+<Card title="File Organization" icon="folder">
+  - Save raw data alongside figures
+  - Use descriptive filenames
+  - Document figure parameters in code
+</Card>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="CLI Usage" icon="terminal" href="/guides/cli-usage">
+    Command-line tools
+  </Card>
+  
+  <Card title="API Usage" icon="server" href="/guides/api-usage">
+    REST API interface
+  </Card>
+  
+  <Card title="API Reference" icon="code" href="/api-reference/utils/visualizer">
+    Visualizer class docs
+  </Card>
+</CardGroup>

@@ -1,0 +1,297 @@
+---
+title: Changelog
+description: Version history and release notes for HeartMAP
+---
+
+## Version History
+
+This page documents all notable changes to HeartMAP, including new features, bug fixes, and breaking changes.
+
+<Note>
+  HeartMAP follows [Semantic Versioning](https://semver.org/): MAJOR.MINOR.PATCH
+  - MAJOR: Incompatible API changes
+  - MINOR: New functionality (backwards-compatible)
+  - PATCH: Bug fixes (backwards-compatible)
+</Note>
+
+## [2.0.2] - 2025-11-08
+
+### Changes
+
+- Merged updates from master branch
+- Synchronized repository state
+- Minor documentation updates
+
+### Technical Details
+
+- **Branch**: Merged `master` branch updates
+- **Type**: Maintenance release
+
+---
+
+## [2.0.1] - 2025-11-08
+
+### Fixed
+
+- **Pipeline fixes**: Resolved issues in analysis pipelines
+- Improved pipeline stability and error handling
+- Enhanced pipeline execution flow
+
+### Changes
+
+- Internal pipeline improvements
+- Code quality enhancements
+- Better error messages for pipeline failures
+
+---
+
+## [2.0.0] - 2025 (Initial Publication Release)
+
+<Info>
+  This is the **initial production release** of HeartMAP, published alongside the paper in Computational and Structural Biotechnology Journal.
+</Info>
+
+### Major Features
+
+#### Core Functionality
+- **Multi-chamber analysis**: Complete support for all four cardiac chambers (RA, RV, LA, LV)
+- **Cell-cell communication**: Integrated LIANA for ligand-receptor interaction analysis
+- **Multiple interfaces**: CLI, Python API, REST API, and Gradio web interface
+- **Production-ready**: Fully tested and deployed on PyPI
+
+#### Analysis Pipelines
+
+<AccordionGroup>
+  <Accordion title="Basic Pipeline">
+    - Quality control and filtering
+    - Data normalization and scaling
+    - Cell type annotation
+    - Clustering (Leiden/Louvain)
+    - Basic visualizations (UMAP, t-SNE)
+  </Accordion>
+  
+  <Accordion title="Communication Pipeline">
+    - Ligand-receptor interaction analysis
+    - Communication hub identification
+    - Pathway enrichment analysis
+    - Network topology analysis
+    - Communication network visualization
+  </Accordion>
+  
+  <Accordion title="Multi-Chamber Pipeline">
+    - Chamber-specific marker identification
+    - Cross-chamber correlation analysis
+    - Comparative chamber analysis
+    - Chamber distribution analysis
+    - Chamber-specific visualizations
+  </Accordion>
+  
+  <Accordion title="Comprehensive Pipeline">
+    - Integrated analysis of all components
+    - Advanced multi-panel visualizations
+    - Automated comprehensive reports
+    - Model persistence and reuse
+  </Accordion>
+</AccordionGroup>
+
+#### Configuration System
+- YAML-based configuration files
+- Memory optimization settings
+- Customizable analysis parameters
+- Environment-aware defaults
+
+#### Data Management
+- AnnData (.h5ad) format support
+- SHA-256 checksums for data integrity
+- Fixed random seeds for reproducibility
+- Configurable data subsetting
+
+#### Deployment Options
+- **PyPI package**: `pip install heartmap`
+- **Docker containers**: Single and multi-service
+- **Cloud platforms**: AWS, GCP, Azure support
+- **Hugging Face Spaces**: Public web interface
+
+### Scientific Validation
+
+#### Validated Dataset
+- **Total cells**: 287,269 from human hearts
+- **Donors**: 7 healthy individuals
+- **Source**: Single Cell Portal SCP498
+- **Chambers**: Complete coverage of RA, RV, LA, LV
+
+#### Key Findings
+- Identified chamber-specific cell populations
+- Discovered chamber-specific communication networks
+- Found therapeutic targets for chamber-specific interventions
+- Established cross-chamber correlation patterns
+
+### Performance
+
+| Configuration | Dataset Size | Memory | Runtime | Status |
+|--------------|-------------|--------|---------|--------|
+| Minimal      | 10K cells   | 8GB    | 5-10 min  | ✓ Tested |
+| Recommended  | 30K cells   | 16GB   | 15-20 min | ✓ Tested |
+| Optimal      | 50K cells   | 32GB   | 25-30 min | ✓ Tested |
+| Production   | 100K+ cells | 64GB+  | 45-60 min | ✓ Tested |
+
+### Documentation
+- Complete user guide
+- API documentation
+- Tutorial notebooks
+- Example scripts
+- Deployment guides
+
+### Testing
+- Comprehensive test suite
+- Validation scripts
+- Mock data generation
+- Performance benchmarks
+
+---
+
+## Pre-release Development
+
+### Beta Phase (2024-2025)
+- Internal testing and validation
+- Method development and optimization
+- Scientific validation on SCP498 dataset
+- Performance optimization
+- Documentation development
+
+### Alpha Phase (2023-2024)
+- Initial implementation
+- Core algorithm development
+- Pipeline architecture design
+- Proof of concept validation
+
+---
+
+## Future Roadmap
+
+### Planned Features
+
+<CardGroup cols={2}>
+  <Card title="v2.1.0" icon="road">
+    **Next Minor Release**
+    - Enhanced visualization options
+    - Additional cell type markers
+    - Performance improvements
+    - Extended species support
+  </Card>
+  
+  <Card title="v2.2.0" icon="sparkles">
+    **Future Enhancements**
+    - Spatial transcriptomics integration
+    - Trajectory analysis
+    - Batch effect correction
+    - Interactive visualizations
+  </Card>
+  
+  <Card title="v3.0.0" icon="rocket">
+    **Major Update (Future)**
+    - Multi-modal data integration
+    - Deep learning models
+    - Real-time analysis
+    - Cloud-native architecture
+  </Card>
+  
+  <Card title="Community" icon="users">
+    **Ongoing**
+    - Community contributions
+    - Bug fixes
+    - Documentation improvements
+    - Tutorial expansion
+  </Card>
+</CardGroup>
+
+### Research Integration
+- Integration with emerging single-cell technologies
+- Support for new interaction databases
+- Advanced statistical methods
+- Machine learning enhancements
+
+---
+
+## Release Notes Format
+
+Each release includes:
+
+- **Added**: New features and capabilities
+- **Changed**: Changes to existing functionality
+- **Deprecated**: Features to be removed in future versions
+- **Removed**: Removed features
+- **Fixed**: Bug fixes
+- **Security**: Security patches and improvements
+
+---
+
+## Getting Updates
+
+### Check Current Version
+
+```bash
+pip show heartmap
+```
+
+### Update to Latest Version
+
+```bash
+# Update from PyPI
+pip install --upgrade heartmap
+
+# Or with all features
+pip install --upgrade heartmap[all]
+```
+
+### Check for Updates
+
+```python
+import heartmap
+print(f"Current version: {heartmap.__version__}")
+```
+
+### Development Version
+
+```bash
+# Install latest from GitHub
+pip install git+https://github.com/Tumo505/HeartMap.git
+```
+
+---
+
+## Version Support
+
+<Warning>
+  **Support Policy**
+  - Latest version receives active support and updates
+  - Previous minor versions receive security fixes for 6 months
+  - Major versions receive security fixes for 1 year after next major release
+</Warning>
+
+---
+
+## Contributing to Releases
+
+Help shape future releases:
+
+1. **Report bugs**: Open issues on GitHub
+2. **Request features**: Start a discussion
+3. **Submit patches**: Create pull requests
+4. **Test pre-releases**: Try beta versions and provide feedback
+
+See the [Contributing](/resources/contributing) guide for details.
+
+---
+
+## Release Notifications
+
+Stay informed about new releases:
+
+- **GitHub Releases**: Watch the repository for notifications
+- **GitHub Discussions**: Announcements posted in discussions
+- **PyPI**: Check the [HeartMAP PyPI page](https://pypi.org/project/heartmap/)
+
+<Tip>
+  Star the [GitHub repository](https://github.com/Tumo505/HeartMap) to receive notifications about new releases!
+</Tip>

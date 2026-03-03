@@ -1,0 +1,135 @@
+---
+title: "REST API Overview"
+description: "Introduction to the HeartMAP REST API for single-cell heart analysis"
+---
+
+## Introduction
+
+The HeartMAP REST API provides a programmatic interface to perform single-cell RNA sequencing analysis of heart tissue. The API is built with FastAPI and supports various analysis pipelines, from basic quality control to comprehensive multi-chamber analysis.
+
+## API Information
+
+<ResponseField name="title" type="string">
+  HeartMAP API
+</ResponseField>
+
+<ResponseField name="version" type="string">
+  1.0.0
+</ResponseField>
+
+<ResponseField name="base_url" type="string">
+  http://localhost:8000
+</ResponseField>
+
+## Starting the Server
+
+### Prerequisites
+
+Install FastAPI and Uvicorn:
+
+```bash
+pip install fastapi uvicorn
+```
+
+### Running the Server
+
+There are multiple ways to start the HeartMAP API server:
+
+#### Option 1: Using Uvicorn Directly
+
+```bash
+uvicorn api_server:app --host 0.0.0.0 --port 8000
+```
+
+#### Option 2: Using the Python Script
+
+```bash
+python api_server.py
+```
+
+#### Option 3: Using the HeartMapAPI Class
+
+```python
+from heartmap.api import HeartMapAPI
+
+# Create API instance
+api = HeartMapAPI(config_path="config.yaml")
+
+# Run server
+api.run(host="0.0.0.0", port=8000, debug=False)
+```
+
+### Server Options
+
+<ParamField path="host" type="string" default="0.0.0.0">
+  Host address to bind the server
+</ParamField>
+
+<ParamField path="port" type="integer" default="8000">
+  Port number for the server
+</ParamField>
+
+<ParamField path="debug" type="boolean" default="false">
+  Enable debug logging
+</ParamField>
+
+## Quick Start Example
+
+Once the server is running, verify it's working:
+
+```bash
+curl http://localhost:8000/
+```
+
+```json
+{
+  "message": "HeartMAP API",
+  "version": "1.0.0"
+}
+```
+
+## Available Analysis Types
+
+The API supports four types of analysis pipelines:
+
+<CardGroup cols={2}>
+  <Card title="Basic" icon="flask">
+    Quality control and basic preprocessing
+  </Card>
+  <Card title="Advanced Communication" icon="comments">
+    Cell-cell communication analysis
+  </Card>
+  <Card title="Multi-Chamber" icon="heart">
+    Multi-chamber comparative analysis
+  </Card>
+  <Card title="Comprehensive" icon="chart-line">
+    Complete analysis pipeline with all features
+  </Card>
+</CardGroup>
+
+## API Features
+
+- **File Upload**: Upload .h5ad files for analysis
+- **Multiple Pipelines**: Choose from basic to comprehensive analysis
+- **Configurable**: Override default configuration parameters
+- **Health Monitoring**: Built-in health check endpoint
+- **Model Discovery**: List available analysis models
+- **Dynamic Configuration**: Update configuration at runtime
+
+## Interactive Documentation
+
+When the server is running, access the interactive API documentation:
+
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="API Endpoints" icon="route" href="/api/rest/endpoints">
+    Explore all available endpoints
+  </Card>
+  <Card title="Authentication" icon="lock" href="/api/rest/authentication">
+    Learn about API authentication
+  </Card>
+</CardGroup>

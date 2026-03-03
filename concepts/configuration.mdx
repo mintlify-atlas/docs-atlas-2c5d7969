@@ -1,0 +1,838 @@
+---
+title: 'Configuration System'
+description: 'Understanding and customizing HeartMAP configuration'
+icon: 'gear'
+---
+
+## Overview
+
+HeartMAP uses a centralized YAML-based configuration system that controls all aspects of data processing, analysis, and model behavior. This allows you to customize behavior without modifying code.
+
+<Tip>
+**Best Practice:** Start with the default configuration and adjust parameters incrementally based on your system resources and dataset characteristics.
+</Tip>
+
+## Configuration Architecture
+
+The configuration is organized into four main sections:
+
+<CardGroup cols={2}>
+  <Card title="Data Config" icon="database">
+    Quality control, filtering, normalization, and preprocessing parameters
+  </Card>
+  
+  <Card title="Analysis Config" icon="microscope">
+    Clustering, dimensionality reduction, and marker gene detection settings
+  </Card>
+  
+  <Card title="Model Config" icon="brain">
+    Pipeline selection, memory limits, and GPU usage
+  </Card>
+  
+  <Card title="Path Config" icon="folder">
+    Input/output directory structure
+  </Card>
+</CardGroup>
+
+## Configuration Classes
+
+HeartMAP uses Python dataclasses for type-safe configuration:
+
+```python
+from heartmap.config import (
+    Config,          # Main configuration class
+    DataConfig,      # Data processing settings
+    AnalysisConfig,  # Analysis parameters
+    ModelConfig,     # Model/pipeline settings
+    PathConfig       # Directory paths
+)
+```
+
+---
+
+## Data Configuration
+
+Controls data preprocessing and quality control.
+
+### DataConfig Parameters
+
+<ParamField path="min_genes" type="int" default="200">
+  Minimum number of genes expressed per cell (for QC filtering)
+  
+  **Usage:** Filters low-quality cells with few detected genes.
+  
+  **Typical range:** 100-500
+  - Lower (100-200): Permissive, keeps more cells
+  - Higher (300-500): Stringent, removes low-quality cells
+</ParamField>
+
+<ParamField path="min_cells" type="int" default="3">
+  Minimum number of cells expressing a gene (for gene filtering)
+  
+  **Usage:** Removes genes detected in very few cells.
+  
+  **Typical range:** 3-10
+  - Lower (3): Keep rare genes
+  - Higher (5-10): Focus on commonly expressed genes
+</ParamField>
+
+<ParamField path="max_cells_subset" type="int | None" default="null">
+  Maximum number of cells to analyze (random subset if exceeded)
+  
+  **Usage:** Memory optimization for large datasets.
+  
+  **Recommendations by RAM:**
+  - 8GB RAM: 10,000-15,000
+  - 16GB RAM: 30,000-40,000
+  - 32GB RAM: 50,000-60,000
+  - 64GB+ RAM: 100,000+
+  
+  <Warning>Set to `null` to analyze all cells (may require substantial RAM)</Warning>
+</ParamField>
+
+<ParamField path="max_genes_subset" type="int | None" default="null">
+  Maximum number of genes to analyze (keeps most variable)
+  
+  **Usage:** Further memory reduction and noise filtering.
+  
+  **Recommendations:**
+  - 8GB RAM: 2,000-3,000
+  - 16GB RAM: 4,000-5,000
+  - 32GB+ RAM: 5,000-10,000
+  
+  <Note>Genes are selected based on variability after n_top_genes filtering</Note>
+</ParamField>
+
+<ParamField path="target_sum" type="float" default="10000.0">
+  Target sum for normalization (counts per cell after normalization)
+  
+  **Usage:** Normalizes library size differences between cells.
+  
+  **Standard:** 10,000 (1e4) is the scanpy default
+  
+  **Alternative:** 1,000,000 (1e6) for CPM (counts per million)
+</ParamField>
+
+<ParamField path="n_top_genes" type="int" default="2000">
+  Number of highly variable genes to select
+  
+  **Usage:** Focuses analysis on informative genes.
+  
+  **Typical range:** 1,000-5,000
+  - Lower (1,000-2,000): Fast, focuses on most variable
+  - Higher (3,000-5,000): Comprehensive, captures more biology
+</ParamField>
+
+<ParamField path="random_seed" type="int" default="42">
+  Random seed for reproducibility
+  
+  **Usage:** Ensures identical results across runs.
+  
+  <Check>Keep at 42 for consistency with published HeartMAP results</Check>
+</ParamField>
+
+<ParamField path="test_mode" type="bool" default="false">
+  Enable test mode (uses minimal data for quick validation)
+  
+  **Usage:** Fast testing and debugging.
+  
+  **When true:**
+  - Uses only 1,000 cells
+  - Uses only 500 genes
+  - Skips some visualizations
+</ParamField>
+
+### Example: Data Config
+
+<CodeGroup>
+```yaml config.yaml
+data:
+  min_genes: 200
+  min_cells: 3
+  max_cells_subset: 30000    # For 16GB RAM system
+  max_genes_subset: 4000
+  target_sum: 10000.0
+  n_top_genes: 2000
+  random_seed: 42
+  test_mode: false
+```
+
+```python Python
+from heartmap.config import DataConfig
+
+data_config = DataConfig(
+    min_genes=200,
+    min_cells=3,
+    max_cells_subset=30000,  # For 16GB RAM
+    max_genes_subset=4000,
+    target_sum=10000.0,
+    n_top_genes=2000,
+    random_seed=42,
+    test_mode=False
+)
+```
+</CodeGroup>
+
+---
+
+## Analysis Configuration
+
+Controls clustering, dimensionality reduction, and marker detection.
+
+### AnalysisConfig Parameters
+
+<ParamField path="n_components_pca" type="int" default="50">
+  Number of principal components to compute
+  
+  **Usage:** Dimensionality reduction before clustering.
+  
+  **Typical range:** 30-100
+  - Lower (30-50): Faster, may miss subtle patterns
+  - Higher (50-100): Captures more variance
+</ParamField>
+
+<ParamField path="n_neighbors" type="int" default="10">
+  Number of neighbors for graph construction
+  
+  **Usage:** Neighborhood graph for clustering and UMAP.
+  
+  **Typical range:** 10-30
+  - Lower (5-10): More granular clusters
+  - Higher (20-30): Broader clusters
+</ParamField>
+
+<ParamField path="n_pcs" type="int" default="40">
+  Number of PCs to use for neighborhood graph
+  
+  **Usage:** How many PCs to use from PCA (must be ≤ n_components_pca).
+  
+  **Typical range:** 20-50
+  - Lower (20-30): Focuses on major variation
+  - Higher (40-50): Includes subtle variation
+</ParamField>
+
+<ParamField path="resolution" type="float" default="0.5">
+  Leiden clustering resolution parameter
+  
+  **Usage:** Controls cluster granularity.
+  
+  **Typical range:** 0.1-2.0
+  - Lower (0.1-0.5): Fewer, broader clusters
+  - Higher (0.8-2.0): Many small clusters
+  
+  <Tip>Start with 0.5, then adjust based on biological interpretation</Tip>
+</ParamField>
+
+<ParamField path="n_marker_genes" type="int" default="25">
+  Number of marker genes to identify per cluster/chamber
+  
+  **Usage:** Marker gene detection and annotation.
+  
+  **Typical range:** 10-50
+  - Lower (10-20): Top markers only
+  - Higher (30-50): Comprehensive marker list
+</ParamField>
+
+<ParamField path="use_leiden" type="bool" default="true">
+  Use Leiden algorithm (vs. Louvain)
+  
+  **Usage:** Leiden is generally preferred over Louvain.
+  
+  **Recommendation:** Keep as `true`
+</ParamField>
+
+<ParamField path="use_liana" type="bool" default="true">
+  Use LIANA for L-R analysis (if available)
+  
+  **Usage:** Enables LIANA integration for communication analysis.
+  
+  **Fallback:** Uses built-in L-R database if LIANA not installed
+</ParamField>
+
+### Example: Analysis Config
+
+<CodeGroup>
+```yaml config.yaml
+analysis:
+  n_components_pca: 50
+  n_neighbors: 10
+  n_pcs: 40
+  resolution: 0.5
+  n_marker_genes: 25
+  use_leiden: true
+  use_liana: true
+```
+
+```python Python
+from heartmap.config import AnalysisConfig
+
+analysis_config = AnalysisConfig(
+    n_components_pca=50,
+    n_neighbors=10,
+    n_pcs=40,
+    resolution=0.5,
+    n_marker_genes=25,
+    use_leiden=True,
+    use_liana=True
+)
+```
+</CodeGroup>
+
+---
+
+## Model Configuration
+
+Controls pipeline behavior and resource usage.
+
+### ModelConfig Parameters
+
+<ParamField path="model_type" type="str" default="comprehensive">
+  Type of analysis pipeline to run
+  
+  **Options:**
+  - `"basic"`: BasicPipeline
+  - `"communication"`: AdvancedCommunicationPipeline
+  - `"multi_chamber"`: MultiChamberPipeline
+  - `"comprehensive"`: ComprehensivePipeline
+</ParamField>
+
+<ParamField path="save_intermediate" type="bool" default="true">
+  Save intermediate results during analysis
+  
+  **Usage:** Enables resuming from checkpoints and debugging.
+  
+  **When true:** Saves data after each major step
+  **When false:** Only saves final results (saves disk space)
+</ParamField>
+
+<ParamField path="use_gpu" type="bool" default="false">
+  Use GPU acceleration (if available)
+  
+  **Usage:** Speeds up certain operations (PCA, neighbors).
+  
+  **Requirements:** 
+  - CUDA-enabled GPU
+  - rapids-singlecell installed
+  
+  <Note>Most users should keep as `false` (CPU is sufficient)</Note>
+</ParamField>
+
+<ParamField path="batch_size" type="int | None" default="null">
+  Batch size for processing (future use)
+  
+  **Usage:** Reserved for batch processing features.
+  
+  **Current:** Not actively used, keep as `null`
+</ParamField>
+
+<ParamField path="max_memory_gb" type="float | None" default="null">
+  Maximum memory usage in GB
+  
+  **Usage:** Automatic memory limit enforcement (future feature).
+  
+  **Current:** Not actively used, manage via `max_cells_subset` instead
+</ParamField>
+
+### Example: Model Config
+
+<CodeGroup>
+```yaml config.yaml
+model:
+  model_type: "comprehensive"
+  save_intermediate: true
+  use_gpu: false
+  batch_size: null
+  max_memory_gb: null
+```
+
+```python Python
+from heartmap.config import ModelConfig
+
+model_config = ModelConfig(
+    model_type="comprehensive",
+    save_intermediate=True,
+    use_gpu=False,
+    batch_size=None,
+    max_memory_gb=None
+)
+```
+</CodeGroup>
+
+---
+
+## Path Configuration
+
+Defines directory structure for data and results.
+
+### PathConfig Parameters
+
+<ParamField path="data_dir" type="str" default="data">
+  Base directory for all data
+</ParamField>
+
+<ParamField path="raw_data_dir" type="str" default="data/raw">
+  Directory for raw input files (.h5ad)
+</ParamField>
+
+<ParamField path="processed_data_dir" type="str" default="data/processed">
+  Directory for processed/intermediate data
+</ParamField>
+
+<ParamField path="results_dir" type="str" default="results">
+  Directory for analysis results
+</ParamField>
+
+<ParamField path="figures_dir" type="str" default="figures">
+  Directory for generated plots and visualizations
+</ParamField>
+
+### Example: Path Config
+
+<CodeGroup>
+```yaml config.yaml
+paths:
+  data_dir: "data"
+  raw_data_dir: "data/raw"
+  processed_data_dir: "data/processed"
+  results_dir: "results"
+  figures_dir: "figures"
+```
+
+```python Python
+from heartmap.config import PathConfig
+
+path_config = PathConfig(
+    data_dir="data",
+    raw_data_dir="data/raw",
+    processed_data_dir="data/processed",
+    results_dir="results",
+    figures_dir="figures"
+)
+```
+</CodeGroup>
+
+---
+
+## Complete Configuration
+
+The main `Config` class combines all four configuration sections.
+
+### Default Configuration
+
+This is the complete default configuration shipped with HeartMAP:
+
+```yaml config.yaml
+# Default HeartMAP Configuration
+
+data:
+  min_genes: 200
+  min_cells: 3
+  max_cells_subset: null  # Set to limit memory usage, e.g., 50000
+  max_genes_subset: null  # Set to limit memory usage, e.g., 5000
+  target_sum: 10000.0
+  n_top_genes: 2000
+  random_seed: 42
+  test_mode: false
+
+analysis:
+  n_components_pca: 50
+  n_neighbors: 10
+  n_pcs: 40
+  resolution: 0.5
+  n_marker_genes: 25
+  use_leiden: true
+  use_liana: true
+
+model:
+  model_type: "comprehensive"
+  save_intermediate: true
+  use_gpu: false
+  batch_size: null
+  max_memory_gb: null
+
+paths:
+  data_dir: "data"
+  raw_data_dir: "data/raw"
+  processed_data_dir: "data/processed"
+  results_dir: "results"
+  figures_dir: "figures"
+  models_dir: "models"
+```
+
+### Loading Configuration
+
+<CodeGroup>
+```python From YAML
+from heartmap import Config
+
+# Load from YAML file
+config = Config.from_yaml('config.yaml')
+
+# Or from default
+config = Config.default()
+```
+
+```python From Dictionary
+from heartmap import Config
+
+config_dict = {
+    'data': {
+        'min_genes': 200,
+        'max_cells_subset': 30000,
+    },
+    'analysis': {
+        'resolution': 0.5,
+    },
+    # ... other sections
+}
+
+config = Config.from_dict(config_dict)
+```
+
+```python Programmatic
+from heartmap import Config
+from heartmap.config import DataConfig, AnalysisConfig, ModelConfig, PathConfig
+
+config = Config(
+    data=DataConfig(min_genes=200, max_cells_subset=30000),
+    analysis=AnalysisConfig(resolution=0.5),
+    model=ModelConfig(model_type="comprehensive"),
+    paths=PathConfig()
+)
+```
+</CodeGroup>
+
+### Saving Configuration
+
+```python
+from heartmap import Config
+
+config = Config.default()
+
+# Modify as needed
+config.data.max_cells_subset = 30000
+config.analysis.resolution = 0.8
+
+# Save to YAML
+config.save_yaml('my_config.yaml')
+
+# Or save to JSON
+config.save_json('my_config.json')
+```
+
+---
+
+## Memory Optimization Presets
+
+Pre-configured settings for different hardware:
+
+<Tabs>
+  <Tab title="8GB RAM (Laptop)">
+    ```yaml config.yaml
+    data:
+      max_cells_subset: 10000
+      max_genes_subset: 2000
+      n_top_genes: 1500
+    
+    analysis:
+      n_components_pca: 30
+      n_pcs: 30
+      resolution: 0.5
+    ```
+    
+    **Expected:**
+    - Memory: ~6GB
+    - Runtime: 5-10 minutes
+    - Suitable for: Initial exploration, testing
+  </Tab>
+  
+  <Tab title="16GB RAM (Workstation)">
+    ```yaml config.yaml
+    data:
+      max_cells_subset: 30000
+      max_genes_subset: 4000
+      n_top_genes: 2000
+    
+    analysis:
+      n_components_pca: 50
+      n_pcs: 40
+      resolution: 0.5
+    ```
+    
+    **Expected:**
+    - Memory: ~12GB
+    - Runtime: 15-20 minutes
+    - Suitable for: Standard analysis, publication
+  </Tab>
+  
+  <Tab title="32GB RAM (Server)">
+    ```yaml config.yaml
+    data:
+      max_cells_subset: 50000
+      max_genes_subset: 5000
+      n_top_genes: 2500
+    
+    analysis:
+      n_components_pca: 50
+      n_pcs: 40
+      resolution: 0.5
+    ```
+    
+    **Expected:**
+    - Memory: ~24GB
+    - Runtime: 20-30 minutes
+    - Suitable for: Large datasets, comprehensive analysis
+  </Tab>
+  
+  <Tab title="64GB+ RAM (HPC)">
+    ```yaml config.yaml
+    data:
+      max_cells_subset: 100000  # Or null for all cells
+      max_genes_subset: 10000   # Or null for all genes
+      n_top_genes: 3000
+    
+    analysis:
+      n_components_pca: 100
+      n_pcs: 50
+      resolution: 0.5
+    ```
+    
+    **Expected:**
+    - Memory: ~48GB+
+    - Runtime: 30-60 minutes
+    - Suitable for: Very large datasets, atlas-scale
+  </Tab>
+</Tabs>
+
+---
+
+## Common Configuration Patterns
+
+### Quick Test Run
+
+```yaml config_test.yaml
+data:
+  test_mode: true  # Uses 1000 cells, 500 genes
+  
+model:
+  model_type: "basic"
+  save_intermediate: false
+```
+
+### Communication-Focused Analysis
+
+```yaml config_comm.yaml
+data:
+  max_cells_subset: 30000
+  n_top_genes: 2500  # More genes for L-R detection
+
+analysis:
+  use_liana: true
+  n_marker_genes: 30
+
+model:
+  model_type: "communication"
+```
+
+### Chamber-Focused Analysis
+
+```yaml config_chamber.yaml
+analysis:
+  resolution: 0.3  # Broader clusters for chamber analysis
+  n_marker_genes: 50  # More markers per chamber
+
+model:
+  model_type: "multi_chamber"
+```
+
+### High-Resolution Clustering
+
+```yaml config_highres.yaml
+analysis:
+  resolution: 1.2  # More granular clusters
+  n_neighbors: 5   # Finer neighborhoods
+  n_marker_genes: 20
+```
+
+---
+
+## Configuration in Practice
+
+### Example Workflow
+
+```python
+from heartmap import Config
+from heartmap.pipelines import ComprehensivePipeline
+
+# 1. Load default configuration
+config = Config.default()
+
+# 2. Customize for your system
+config.data.max_cells_subset = 30000  # 16GB RAM system
+config.data.max_genes_subset = 4000
+
+# 3. Adjust analysis parameters
+config.analysis.resolution = 0.8  # More clusters
+config.analysis.use_liana = True  # Enable LIANA
+
+# 4. Set paths
+config.paths.raw_data_dir = "/path/to/my/data"
+config.paths.results_dir = "/path/to/my/results"
+
+# 5. Create directories
+config.create_directories()
+
+# 6. Save configuration for reproducibility
+config.save_yaml('my_analysis_config.yaml')
+
+# 7. Run analysis
+pipeline = ComprehensivePipeline(config)
+results = pipeline.run(
+    'heart_data.h5ad',
+    config.paths.results_dir
+)
+
+print("Analysis complete!")
+```
+
+### Reproducible Research
+
+<Steps>
+  <Step title="Save Configuration">
+    Always save your configuration file alongside results:
+    ```python
+    config.save_yaml('results/config_used.yaml')
+    ```
+  </Step>
+  
+  <Step title="Version Control">
+    Track configuration files in git:
+    ```bash
+    git add config.yaml
+    git commit -m "Add configuration for dataset X"
+    ```
+  </Step>
+  
+  <Step title="Document Changes">
+    Keep a changelog of configuration modifications:
+    ```yaml
+    # config.yaml
+    # 2025-03-03: Increased resolution to 0.8 for finer clusters
+    # 2025-03-02: Set max_cells_subset=30000 for 16GB RAM
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Out of Memory Errors">
+    **Symptoms:** Python crashes, "MemoryError", system freezes
+    
+    **Solutions:**
+    1. Reduce `max_cells_subset` (e.g., from 50000 to 30000)
+    2. Reduce `max_genes_subset` (e.g., from 5000 to 3000)
+    3. Reduce `n_top_genes` (e.g., from 2000 to 1500)
+    4. Set `save_intermediate: false` to reduce disk I/O
+    5. Close other applications
+    
+    ```yaml
+    data:
+      max_cells_subset: 15000  # Aggressive reduction
+      max_genes_subset: 2000
+      n_top_genes: 1500
+    ```
+  </Accordion>
+
+  <Accordion title="Too Many/Few Clusters">
+    **Too many clusters:**
+    ```yaml
+    analysis:
+      resolution: 0.3  # Decrease resolution
+      n_neighbors: 15  # Increase neighbors
+    ```
+    
+    **Too few clusters:**
+    ```yaml
+    analysis:
+      resolution: 0.8  # Increase resolution
+      n_neighbors: 5   # Decrease neighbors
+    ```
+  </Accordion>
+
+  <Accordion title="Slow Performance">
+    **Solutions:**
+    1. Enable test mode for quick validation
+    2. Reduce dataset size
+    3. Use fewer PCA components
+    
+    ```yaml
+    data:
+      max_cells_subset: 10000
+      test_mode: true  # For testing only
+    
+    analysis:
+      n_components_pca: 30
+      n_pcs: 30
+    ```
+  </Accordion>
+
+  <Accordion title="Configuration File Not Found">
+    **Error:** `FileNotFoundError: config.yaml`
+    
+    **Solutions:**
+    1. Use absolute path:
+       ```python
+       config = Config.from_yaml('/full/path/to/config.yaml')
+       ```
+    2. Use default configuration:
+       ```python
+       config = Config.default()
+       ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Apply configuration in your first analysis
+  </Card>
+  
+  <Card title="Pipelines" icon="pipe" href="/concepts/pipelines">
+    Understand how pipelines use configuration
+  </Card>
+  
+  <Card title="API Reference" icon="code" href="/api-reference/config">
+    Complete configuration API documentation
+  </Card>
+  
+  <Card title="Examples" icon="flask" href="/examples">
+    See configuration examples for different use cases
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<Check>
+**Do's:**
+- Start with default configuration
+- Adjust memory settings for your hardware
+- Save configuration files with results
+- Use version control for config files
+- Document why you changed parameters
+- Test with `test_mode: true` first
+</Check>
+
+<Warning>
+**Don'ts:**
+- Don't set memory limits higher than available RAM
+- Don't change `random_seed` unless necessary
+- Don't skip saving configuration files
+- Don't use extreme parameter values without testing
+- Don't analyze full datasets on low-memory systems
+</Warning>

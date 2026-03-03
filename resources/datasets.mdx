@@ -1,0 +1,249 @@
+---
+title: Datasets
+description: Supported data formats and example datasets for HeartMAP
+---
+
+## Supported Data Formats
+
+HeartMAP supports standard single-cell RNA-seq data formats used in the bioinformatics community.
+
+### Primary Format: AnnData (.h5ad)
+
+HeartMAP primarily works with **AnnData** objects stored in `.h5ad` (HDF5) format, which is the standard format used by Scanpy and the single-cell analysis ecosystem.
+
+<Info>
+  **AnnData** is a Python package for handling annotated data matrices in memory and on disk. It's specifically designed for single-cell data and provides efficient storage and manipulation.
+</Info>
+
+### Required Data Structure
+
+Your `.h5ad` file should contain:
+
+- **Expression matrix**: Genes × Cells count data
+- **Cell metadata** (`.obs`): Cell annotations, quality metrics
+- **Gene metadata** (`.var`): Gene names, feature information
+- **Chamber information**: For multi-chamber analysis, include chamber labels (RA, RV, LA, LV)
+
+### Example Data Loading
+
+```python
+import scanpy as sc
+
+# Read your data
+adata = sc.read_h5ad('your_heart_data.h5ad')
+
+# Verify data structure
+print(f"Cells: {adata.n_obs}")
+print(f"Genes: {adata.n_vars}")
+print(f"Observations: {adata.obs.columns.tolist()}")
+```
+
+## Reference Dataset: Single Cell Portal SCP498
+
+HeartMAP was developed and validated using the comprehensive human heart dataset available at Single Cell Portal.
+
+### Dataset Details
+
+<Card title="Human Heart Cell Atlas" icon="database">
+  **Single Cell Portal: SCP498**
+  
+  - **Total cells**: 287,269 single cells
+  - **Donors**: 7 healthy human hearts
+  - **Chambers**: All four cardiac chambers (RA, RV, LA, LV)
+  - **Technology**: Single-cell RNA-sequencing
+</Card>
+
+### Chamber Distribution
+
+The SCP498 dataset contains cells from all four cardiac chambers:
+
+| Chamber | Cell Count | Percentage |
+|---------|------------|------------|
+| Right Atrium (RA) | ~81,500 | 28.4% |
+| Left Ventricle (LV) | ~77,500 | 27.0% |
+| Left Atrium (LA) | ~75,800 | 26.4% |
+| Right Ventricle (RV) | ~52,300 | 18.2% |
+
+### Chamber-Specific Markers
+
+Key molecular markers identified in the dataset:
+
+<AccordionGroup>
+  <Accordion title="Right Atrium (RA)">
+    - **NPPA**: Atrial natriuretic peptide
+    - **MIR100HG**: MicroRNA host gene
+    - **MYL7**: Myosin light chain 7
+    - **MYL4**: Myosin light chain 4
+    - **PDE4D**: Phosphodiesterase 4D
+  </Accordion>
+  
+  <Accordion title="Right Ventricle (RV)">
+    - **NEAT1**: Nuclear paraspeckle assembly transcript 1
+    - **MYH7**: Myosin heavy chain 7
+    - **FHL2**: Four and a half LIM domains 2
+    - **C15orf41**: Chromosome 15 open reading frame 41
+    - **PCDH7**: Protocadherin 7
+  </Accordion>
+  
+  <Accordion title="Left Atrium (LA)">
+    - **NPPA**: Atrial natriuretic peptide
+    - **ELN**: Elastin
+    - **MYL7**: Myosin light chain 7
+    - **EBF2**: Early B-cell factor 2
+    - **RORA**: RAR-related orphan receptor A
+  </Accordion>
+  
+  <Accordion title="Left Ventricle (LV)">
+    - **CD36**: Fatty acid translocase
+    - **LINC00486**: Long intergenic non-protein coding RNA
+    - **FHL2**: Four and a half LIM domains 2
+    - **RP11-532N4.2**: Long non-coding RNA
+    - **MYH7**: Myosin heavy chain 7
+  </Accordion>
+</AccordionGroup>
+
+## Preparing Your Own Data
+
+### Data Requirements
+
+For optimal results with HeartMAP, your data should meet these criteria:
+
+<Steps>
+  <Step title="Quality Control">
+    - Minimum genes per cell: 200 (configurable)
+    - Minimum cells per gene: 3 (configurable)
+    - Quality filtered for doublets and low-quality cells
+  </Step>
+  
+  <Step title="Data Format">
+    - Stored as `.h5ad` file
+    - Raw or normalized counts in `.X`
+    - Cell metadata in `.obs`
+    - Gene names in `.var`
+  </Step>
+  
+  <Step title="Chamber Annotation">
+    For multi-chamber analysis, include chamber labels:
+    - Column name: `chamber` or `region` in `.obs`
+    - Labels: RA, RV, LA, LV (standard abbreviations)
+  </Step>
+</Steps>
+
+### Converting Other Formats
+
+<CodeGroup>
+```python Seurat to AnnData
+import scanpy as sc
+import anndata2ri
+from rpy2.robjects import r
+
+# Activate anndata2ri
+anndata2ri.activate()
+
+# Load Seurat object from R
+r('library(Seurat)')
+r('seurat_obj <- readRDS("your_data.rds")')
+
+# Convert to AnnData
+adata = r('as.SingleCellExperiment(seurat_obj)')
+
+# Save as h5ad
+adata.write_h5ad('converted_data.h5ad')
+```
+
+```python CSV/TSV to AnnData
+import pandas as pd
+import scanpy as sc
+import anndata as ad
+
+# Read expression matrix
+expression = pd.read_csv('expression_matrix.csv', index_col=0)
+
+# Read metadata
+metadata = pd.read_csv('cell_metadata.csv', index_col=0)
+
+# Create AnnData object
+adata = ad.AnnData(X=expression.T, obs=metadata)
+
+# Save as h5ad
+adata.write_h5ad('converted_data.h5ad')
+```
+
+```python 10X to AnnData
+import scanpy as sc
+
+# Read 10X data
+adata = sc.read_10x_mtx(
+    'filtered_feature_bc_matrix/',
+    var_names='gene_symbols',
+    cache=True
+)
+
+# Save as h5ad
+adata.write_h5ad('10x_data.h5ad')
+```
+</CodeGroup>
+
+## Example Datasets
+
+### Mock Data for Testing
+
+HeartMAP includes functionality to generate mock data for testing:
+
+```python
+from heartmap import Config
+from heartmap.pipelines import ComprehensivePipeline
+
+# Create configuration with test mode
+config = Config.default()
+config.data.test_mode = True
+
+# Pipeline will generate mock data automatically
+pipeline = ComprehensivePipeline(config)
+results = pipeline.run('mock_data', 'test_results/')
+```
+
+### Data Size Guidelines
+
+Choose appropriate dataset sizes based on your system:
+
+| System RAM | Recommended Cells | Recommended Genes | Analysis Time |
+|------------|-------------------|-------------------|---------------|
+| 8GB | 10,000 | 2,000 | 5-10 minutes |
+| 16GB | 30,000 | 4,000 | 10-20 minutes |
+| 32GB | 50,000 | 5,000 | 20-30 minutes |
+| 64GB+ | 100,000+ | 10,000+ | 30-60 minutes |
+
+## Data Integrity
+
+### Checksums
+
+HeartMAP supports SHA-256 checksums for data verification:
+
+```bash
+# Generate checksums for your data
+python utils/sha256_checksum.py generate data/raw
+
+# Verify data integrity
+python utils/sha256_checksum.py verify data/raw data/raw/checksums.txt
+```
+
+### Reproducibility
+
+All analyses use fixed random seeds to ensure reproducible results:
+
+- Random sampling: seed = 42
+- Clustering algorithms: random_state = 42
+- Communication analysis: seed = 42
+
+<Tip>
+  You can customize the random seed in your configuration file to use a different seed while maintaining reproducibility.
+</Tip>
+
+## Need Help?
+
+If you're having trouble with your data format:
+
+- Check the [Troubleshooting](/resources/troubleshooting) guide
+- Review the [FAQ](/resources/faq) for common data questions
+- Visit [GitHub Issues](https://github.com/Tumo505/HeartMap/issues) for support

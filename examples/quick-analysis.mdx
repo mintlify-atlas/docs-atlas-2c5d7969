@@ -1,0 +1,279 @@
+---
+title: Quick Analysis
+description: Get started with HeartMAP in 30 seconds to 2 minutes
+icon: bolt
+---
+
+## 30-Second Command Line Analysis
+
+Analyze your heart data with a single command:
+
+```bash
+heartmap your_heart_data.h5ad
+```
+
+That's it! HeartMAP will:
+- Automatically detect your data format
+- Perform quality control
+- Run cell type annotation
+- Generate visualizations
+- Save results to `./results/`
+
+<Note>
+This uses default settings optimized for typical heart datasets. For custom analysis, see the 2-minute Python example below.
+</Note>
+
+## 2-Minute Python Analysis
+
+For more control, use the Python API:
+
+```python
+from heartmap import Config
+from heartmap.pipelines import ComprehensivePipeline
+
+# Quick analysis with defaults
+config = Config.default()
+pipeline = ComprehensivePipeline(config)
+results = pipeline.run('your_data.h5ad', 'results/')
+
+print("✓ Analysis complete! Check 'results/' directory.")
+```
+
+**What you get:**
+- Cell type clusters and annotations
+- Quality control metrics and plots
+- UMAP visualization
+- Comprehensive analysis report
+- Processed AnnData object saved for further analysis
+
+## Custom Output Directory
+
+```bash
+# CLI
+heartmap your_data.h5ad --output-dir my_results/
+
+# Python
+results = pipeline.run('your_data.h5ad', 'my_results/')
+```
+
+## Choose Analysis Type
+
+<Tabs>
+  <Tab title="Basic">
+    **Runtime:** 5-10 minutes | **Best for:** Quick QC and cell typing
+
+    ```bash
+    heartmap your_data.h5ad --analysis-type annotation
+    ```
+
+    ```python
+    from heartmap.pipelines import BasicPipeline
+    
+    pipeline = BasicPipeline(config)
+    results = pipeline.run('your_data.h5ad', 'results/')
+    ```
+
+    **Outputs:**
+    - Cell type clusters (Leiden clustering)
+    - QC metrics (mitochondrial genes, cell counts)
+    - UMAP plot colored by cluster
+    - Marker genes per cluster
+  </Tab>
+
+  <Tab title="Communication">
+    **Runtime:** 10-15 minutes | **Best for:** Cell-cell interaction analysis
+
+    ```bash
+    heartmap your_data.h5ad --analysis-type communication
+    ```
+
+    ```python
+    from heartmap.pipelines import AdvancedCommunicationPipeline
+    
+    pipeline = AdvancedCommunicationPipeline(config)
+    results = pipeline.run('your_data.h5ad', 'results/')
+    ```
+
+    **Outputs:**
+    - Ligand-receptor interaction networks
+    - Communication hub scores
+    - Pathway enrichment analysis
+    - Interactive network graphs
+  </Tab>
+
+  <Tab title="Multi-Chamber">
+    **Runtime:** 15-20 minutes | **Best for:** Chamber-specific analysis
+
+    ```bash
+    heartmap your_data.h5ad --analysis-type multi-chamber
+    ```
+
+    ```python
+    from heartmap.pipelines import MultiChamberPipeline
+    
+    pipeline = MultiChamberPipeline(config)
+    results = pipeline.run('your_data.h5ad', 'results/')
+    ```
+
+    **Outputs:**
+    - Chamber-specific markers (RA, RV, LA, LV)
+    - Cross-chamber correlations
+    - Chamber composition analysis
+    - Chamber-specific visualization
+  </Tab>
+
+  <Tab title="Comprehensive">
+    **Runtime:** 20-30 minutes | **Best for:** Complete analysis
+
+    ```bash
+    heartmap your_data.h5ad --analysis-type comprehensive
+    ```
+
+    ```python
+    from heartmap.pipelines import ComprehensivePipeline
+    
+    pipeline = ComprehensivePipeline(config)
+    results = pipeline.run('your_data.h5ad', 'results/')
+    ```
+
+    **Outputs:**
+    - All of the above
+    - Comprehensive dashboard
+    - Automated HTML report
+    - Publication-ready figures
+  </Tab>
+</Tabs>
+
+## Memory-Optimized Analysis
+
+If you have limited RAM (8-16GB), use a custom config:
+
+```python
+from heartmap import Config
+
+# Create memory-optimized config
+config = Config.default()
+config.data.max_cells_subset = 10000  # Analyze 10K cells
+config.data.max_genes_subset = 2000   # Top 2K variable genes
+
+pipeline = ComprehensivePipeline(config)
+results = pipeline.run('large_dataset.h5ad', 'results/')
+```
+
+<Info>
+**Memory Guidelines:**
+- 8GB RAM: `max_cells_subset = 10000, max_genes_subset = 2000`
+- 16GB RAM: `max_cells_subset = 30000, max_genes_subset = 4000`
+- 32GB+ RAM: `max_cells_subset = 50000, max_genes_subset = 5000`
+</Info>
+
+## Using Custom Config File
+
+```bash
+# Create your config
+cat > my_config.yaml << EOF
+data:
+  min_genes: 200
+  min_cells: 3
+  max_cells_subset: 30000
+  max_genes_subset: 4000
+
+analysis:
+  resolution: 0.5
+  n_neighbors: 10
+  use_leiden: true
+EOF
+
+# Run with custom config
+heartmap your_data.h5ad --config my_config.yaml
+```
+
+```python
+# Python
+config = Config.from_yaml('my_config.yaml')
+pipeline = ComprehensivePipeline(config)
+results = pipeline.run('your_data.h5ad', 'results/')
+```
+
+## Working with Results
+
+After analysis, explore your results:
+
+```python
+import scanpy as sc
+
+# Load processed data
+adata = sc.read_h5ad('results/heartmap_complete.h5ad')
+
+# View cell clusters
+print(adata.obs['leiden'].value_counts())
+
+# Access hub scores (from communication analysis)
+if 'hub_score' in adata.obs:
+    print(f"Average hub score: {adata.obs['hub_score'].mean():.4f}")
+
+# Plot specific genes
+sc.pl.umap(adata, color=['NPPA', 'MYH7', 'CD36'])
+```
+
+## Expected Outputs
+
+After running quick analysis, you'll find:
+
+```
+results/
+├── figures/
+│   ├── umap_clusters.png          # Cell type visualization
+│   ├── qc_metrics.png              # Quality control plots
+│   └── marker_genes.png            # Top markers per cluster
+├── tables/
+│   ├── cluster_summary.csv         # Cluster statistics
+│   └── marker_genes.csv            # Marker gene list
+├── heartmap_complete.h5ad          # Processed AnnData
+└── analysis_report.html            # Interactive report
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Memory Error: Cannot allocate array">
+    Reduce dataset size:
+    ```python
+    config.data.max_cells_subset = 5000
+    config.data.max_genes_subset = 1000
+    ```
+  </Accordion>
+
+  <Accordion title="File not found">
+    Use absolute paths:
+    ```python
+    from pathlib import Path
+    data_path = Path('/full/path/to/your_data.h5ad')
+    results = pipeline.run(str(data_path), 'results/')
+    ```
+  </Accordion>
+
+  <Accordion title="Analysis runs very slow">
+    Enable test mode for quick validation:
+    ```python
+    config.data.test_mode = True  # Uses small subset
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Python API" icon="code" href="/examples/python-api">
+    Explore comprehensive API examples
+  </Card>
+  <Card title="Custom Pipelines" icon="diagram-project" href="/examples/custom-pipelines">
+    Build your own analysis workflows
+  </Card>
+  <Card title="Configuration" icon="sliders" href="/user-guide/configuration">
+    Learn about all configuration options
+  </Card>
+  <Card title="Output Reference" icon="chart-bar" href="/reference/outputs">
+    Understand all output files
+  </Card>
+</CardGroup>

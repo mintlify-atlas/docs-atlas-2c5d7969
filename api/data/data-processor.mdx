@@ -1,0 +1,377 @@
+---
+title: DataProcessor
+description: Main data processing class for loading, preprocessing, and analyzing single-cell data
+---
+
+## Overview
+
+`DataProcessor` provides a complete pipeline for processing single-cell RNA-seq data, from raw file loading through normalization, quality control, and dimensionality reduction. It integrates `DataLoader` and `DataValidator` to handle the entire preprocessing workflow.
+
+## Class: DataProcessor
+
+### Constructor
+
+```python
+from heartmap.data import DataProcessor
+from heartmap.config import Config
+
+config = Config()
+processor = DataProcessor(config)
+```
+
+<ParamField path="config" type="Config" required>
+  Configuration object containing data processing parameters, file paths, and analysis settings
+</ParamField>
+
+### Attributes
+
+<ResponseField name="config" type="Config">
+  Configuration object used for all processing operations
+</ResponseField>
+
+<ResponseField name="loader" type="DataLoader">
+  Internal DataLoader instance for loading and preprocessing operations
+</ResponseField>
+
+---
+
+## Methods
+
+### process_from_raw
+
+Complete processing pipeline from raw data file to analysis-ready AnnData object.
+
+```python
+adata = processor.process_from_raw(
+    file_path="data/raw/heart_10x.h5ad",
+    save_intermediate=True
+)
+```
+
+<ParamField path="file_path" type="str" required>
+  Path to raw data file. Supported formats:
+  - `.h5ad` - Scanpy/AnnData format
+  - `.h5` - 10x Genomics HDF5 format
+  - `.csv` - CSV matrix (genes as rows)
+</ParamField>
+
+<ParamField path="save_intermediate" type="bool" default="True">
+  Whether to save intermediate processing steps:
+  - `preprocessed.h5ad` - After basic filtering
+  - `qc_calculated.h5ad` - After QC metrics
+  - `scaled.h5ad` - After memory scaling
+  - `normalized.h5ad` - After normalization
+  - `processed_with_neighbors.h5ad` - Final output
+</ParamField>
+
+<ResponseField name="returns" type="AnnData">
+  Processed AnnData object with:
+  - Normalized and log-transformed expression values in `.X`
+  - Quality control metrics in `.obs`
+  - PCA coordinates in `.obsm['X_pca']`
+  - Neighborhood graph in `.obsp['connectivities']`
+</ResponseField>
+
+#### Pipeline Steps
+
+1. **Load raw data** - Read file and validate structure
+2. **Basic preprocessing** - Filter low-quality cells/genes (min_genes, min_cells from config)
+3. **QC calculation** - Compute mitochondrial, ribosomal, hemoglobin percentages
+4. **Memory scaling** - Subsample if dataset exceeds max_cells_subset or max_genes_subset
+5. **Normalization** - Normalize to target_sum, log1p transform
+6. **Sanitization** - Remove NaN/Inf values before PCA
+7. **PCA** - Compute principal components (arpack solver)
+8. **Neighbors** - Build k-nearest neighbors graph (n_neighbors=15, n_pcs=40)
+
+#### Example
+
+```python
+from heartmap.data import DataProcessor
+from heartmap.config import Config
+
+# Initialize with custom config
+config = Config()
+config.data.min_genes = 200
+config.data.min_cells = 3
+config.data.target_sum = 1e4
+config.data.max_cells_subset = 10000
+
+processor = DataProcessor(config)
+
+# Process raw 10x data
+adata = processor.process_from_raw(
+    file_path="data/heart_sample.h5",
+    save_intermediate=True
+)
+
+print(f"Processed {adata.n_obs} cells × {adata.n_vars} genes")
+print(f"PCA shape: {adata.obsm['X_pca'].shape}")
+# Output:
+# Processed 8543 cells × 2000 genes
+# PCA shape: (8543, 50)
+```
+
+---
+
+### create_test_dataset
+
+Create a small test dataset by random subsampling.
+
+```python
+test_adata = processor.create_test_dataset(adata, n_cells=1000)
+```
+
+<ParamField path="adata" type="AnnData" required>
+  Full dataset to subsample from
+</ParamField>
+
+<ParamField path="n_cells" type="int" default="1000">
+  Number of cells to sample (will not exceed dataset size)
+</ParamField>
+
+<ResponseField name="returns" type="AnnData">
+  Subset AnnData object with randomly sampled cells. Uses random seed from config for reproducibility.
+</ResponseField>
+
+#### Example
+
+```python
+# Create small test set for rapid prototyping
+test_data = processor.create_test_dataset(full_adata, n_cells=500)
+print(f"Test dataset: {test_data.n_obs} cells")
+```
+
+---
+
+## Helper Classes
+
+### DataValidator
+
+Validate data integrity and format.
+
+#### Methods
+
+**verify_checksum**
+
+```python
+from heartmap.data import DataValidator
+
+is_valid = DataValidator.verify_checksum(
+    file_path="data/sample.h5ad",
+    expected_checksum="abc123..."
+)
+```
+
+<ParamField path="file_path" type="str" required>
+  Path to file to verify
+</ParamField>
+
+<ParamField path="expected_checksum" type="str" required>
+  Expected SHA256 checksum
+</ParamField>
+
+<ResponseField name="returns" type="bool">
+  True if checksums match, False otherwise
+</ResponseField>
+
+**validate_anndata**
+
+```python
+is_valid, issues = DataValidator.validate_anndata(
+    adata,
+    check_qc_metrics=True
+)
+
+if not is_valid:
+    print(f"Validation issues: {issues}")
+```
+
+<ParamField path="adata" type="AnnData" required>
+  AnnData object to validate
+</ParamField>
+
+<ParamField path="check_qc_metrics" type="bool" default="True">
+  Whether to check for QC metric columns (n_genes_by_counts, total_counts)
+</ParamField>
+
+<ResponseField name="returns" type="Tuple[bool, List[str]]">
+  - First element: True if valid, False if issues found
+  - Second element: List of validation issue descriptions
+</ResponseField>
+
+---
+
+### DataLoader
+
+Load and preprocess data with fine-grained control.
+
+```python
+from heartmap.data import DataLoader
+from heartmap.config import Config
+
+loader = DataLoader(Config())
+```
+
+#### Methods
+
+**load_raw_data**
+
+```python
+adata = loader.load_raw_data(
+    file_path="data/heart.h5ad",
+    verify_integrity=True
+)
+```
+
+<ParamField path="file_path" type="str | Path" required>
+  Path to data file (.h5ad, .h5, or .csv)
+</ParamField>
+
+<ParamField path="verify_integrity" type="bool" default="True">
+  Run validation checks after loading
+</ParamField>
+
+**preprocess_basic**
+
+```python
+adata = loader.preprocess_basic(adata)
+```
+
+Basic preprocessing: make gene names unique, filter cells/genes by min counts.
+
+**calculate_qc_metrics**
+
+```python
+adata = loader.calculate_qc_metrics(adata)
+```
+
+Calculate QC metrics for mitochondrial, ribosomal, and hemoglobin genes. Adds columns to `adata.obs`:
+- `n_genes_by_counts`, `total_counts`
+- `pct_counts_mt`, `pct_counts_ribo`, `pct_counts_hb`
+
+**scale_for_memory**
+
+```python
+adata = loader.scale_for_memory(adata)
+```
+
+Subsample cells/genes if dataset exceeds `max_cells_subset` or `max_genes_subset` from config.
+
+**normalize_and_scale**
+
+```python
+adata = loader.normalize_and_scale(adata)
+```
+
+Normalize counts to target sum, apply log1p transformation, and sanitize values.
+
+**preprocess** (convenience)
+
+```python
+adata = loader.preprocess(adata)
+```
+
+Run complete preprocessing pipeline: basic → scale → normalize.
+
+---
+
+## Configuration
+
+Key configuration parameters from `Config` object:
+
+```python
+config.data.min_genes = 200        # Minimum genes per cell
+config.data.min_cells = 3          # Minimum cells per gene
+config.data.target_sum = 1e4       # Normalization target
+config.data.max_cells_subset = 10000  # Max cells (or None)
+config.data.max_genes_subset = 2000   # Max genes (or None)
+config.data.random_seed = 42       # Reproducibility seed
+
+config.paths.processed_data_dir = "data/processed"
+```
+
+---
+
+## File Formats
+
+### Input Formats
+
+| Format | Extension | Description | Reader |
+|--------|-----------|-------------|--------|
+| AnnData | `.h5ad` | Scanpy native format | `sc.read_h5ad()` |
+| 10x HDF5 | `.h5` | 10x Genomics output | `sc.read_10x_h5()` |
+| CSV | `.csv` | Gene × Cell matrix | `sc.read_csv()` |
+
+### Output Structure
+
+Processed AnnData contains:
+
+```python
+adata.X              # Normalized, log-transformed expression
+adata.obs            # Cell metadata with QC metrics
+adata.var            # Gene metadata (mt, ribo, hb flags)
+adata.obsm['X_pca']  # PCA coordinates
+adata.obsp['connectivities']  # Neighbor graph
+adata.raw            # Original counts (if preserved)
+```
+
+---
+
+## Error Handling
+
+Common exceptions:
+
+```python
+try:
+    adata = processor.process_from_raw(file_path)
+except FileNotFoundError:
+    print("Data file not found")
+except ValueError as e:
+    print(f"Unsupported file format: {e}")
+```
+
+Validation warnings:
+
+```python
+# Non-fatal warnings (data still processed)
+UserWarning: Data validation issues: No cells in dataset
+UserWarning: Data validation issues: Non-finite values in X matrix
+```
+
+---
+
+## Best Practices
+
+1. **Always use configuration objects** - Don't hardcode parameters
+2. **Save intermediate files** - Enable debugging of pipeline stages
+3. **Check validation issues** - Review warnings before analysis
+4. **Use test datasets** - Prototype on small subsets first
+5. **Monitor memory** - Set max_cells_subset for large datasets
+
+```python
+# Recommended workflow
+config = Config()
+config.data.max_cells_subset = 10000  # Prevent OOM
+
+processor = DataProcessor(config)
+adata = processor.process_from_raw(
+    file_path="large_dataset.h5ad",
+    save_intermediate=True  # Save checkpoints
+)
+
+# Validate before analysis
+is_valid, issues = DataValidator.validate_anndata(adata)
+if issues:
+    print(f"⚠ Issues found: {issues}")
+
+# Test on subset first
+test_data = processor.create_test_dataset(adata, n_cells=1000)
+```
+
+---
+
+## See Also
+
+- [LigandReceptorDatabase](/api/data/lr-database) - Load L-R interaction databases
+- [Config](/api/config/config) - Configuration management
+- [Scanpy documentation](https://scanpy.readthedocs.io/) - Underlying preprocessing library

@@ -1,0 +1,166 @@
+---
+title: 'MultiChamberPipeline'
+description: 'Multi-chamber heart analysis pipeline for spatial cardiac studies'
+---
+
+## Overview
+
+The `MultiChamberPipeline` class performs integrated analysis across multiple heart chambers (atria, ventricles, etc.), identifying chamber-specific markers and cross-chamber correlations.
+
+**Inheritance:** `BasePipeline`
+
+**Source:** `heartmap.pipelines.MultiChamberPipeline` (src/heartmap/pipelines/__init__.py:310)
+
+## Constructor
+
+```python
+MultiChamberPipeline(config: Config)
+```
+
+<ParamField path="config" type="Config" required>
+  Configuration object containing analysis parameters.
+</ParamField>
+
+### Attributes
+
+Inherited from `BasePipeline`:
+- `config` (Config): Configuration object
+- `data_processor` (DataProcessor): Data processing handler
+- `visualizer` (Visualizer): Visualization handler
+- `exporter` (ResultsExporter): Results export handler
+- `results` (Dict[str, Any]): Dictionary storing pipeline results
+
+## Methods
+
+### run()
+
+Run the multi-chamber analysis pipeline on cardiac tissue data.
+
+```python
+def run(data_path: str, output_dir: Optional[str] = None) -> Dict[str, Any]
+```
+
+<ParamField path="data_path" type="str" required>
+  Path to H5AD file containing single-cell data from multiple heart chambers.
+</ParamField>
+
+<ParamField path="output_dir" type="Optional[str]">
+  Directory to save multi-chamber analysis results and visualizations. If None, results are returned but not saved.
+</ParamField>
+
+<ResponseField name="return" type="Dict[str, Any]">
+  Dictionary containing pipeline results:
+  
+  <ResponseField name="adata" type="AnnData">
+    Annotated data object (unchanged from input)
+  </ResponseField>
+  
+  <ResponseField name="results" type="Dict[str, Any]">
+    Multi-chamber analysis results
+    
+    <ResponseField name="chamber_markers" type="Dict[str, Any]">
+      Dictionary of chamber-specific marker genes and their statistics
+    </ResponseField>
+    
+    <ResponseField name="cross_chamber_correlations" type="pd.DataFrame">
+      DataFrame containing correlation metrics between chambers
+    </ResponseField>
+  </ResponseField>
+</ResponseField>
+
+**Raises:**
+- `ImportError`: If required dependencies (scanpy, pandas, numpy) are not available
+
+**Pipeline Steps:**
+
+1. **Data Loading** - Reads H5AD file with multi-chamber data
+2. **Chamber Pattern Analysis** - Identifies chamber-specific expression patterns
+3. **Marker Identification** - Finds marker genes specific to each chamber
+4. **Cross-Chamber Correlation** - Computes correlations between chamber transcriptomes
+5. **Visualization** - Generates chamber composition, marker, and correlation plots (if output_dir provided)
+
+### save_results()
+
+Inherited from `BasePipeline`. Save pipeline results to disk.
+
+```python
+def save_results(output_dir: str) -> None
+```
+
+<ParamField path="output_dir" type="str" required>
+  Directory path where results will be saved
+</ParamField>
+
+## Usage Example
+
+```python
+from heartmap.config import Config
+from heartmap.pipelines import MultiChamberPipeline
+
+# Create configuration
+config = Config(
+    data_path="data/multi_chamber_heart.h5ad"
+)
+
+# Initialize pipeline
+pipeline = MultiChamberPipeline(config)
+
+# Run multi-chamber analysis
+results = pipeline.run(
+    data_path="data/whole_heart_atlas.h5ad",
+    output_dir="results/multi_chamber"
+)
+
+# Access chamber markers
+chamber_markers = results['results']['chamber_markers']
+for chamber, markers in chamber_markers.items():
+    print(f"\n{chamber} markers:")
+    print(markers)
+
+# Access cross-chamber correlations
+correlations = results['results']['cross_chamber_correlations']
+print(f"\nCross-chamber correlations:\n{correlations}")
+```
+
+## Data Requirements
+
+The input data should:
+
+- Contain single-cell RNA-seq data from multiple heart chambers
+- Include chamber annotations in `adata.obs` (e.g., 'chamber', 'tissue', or 'region' column)
+- Be properly normalized and quality-filtered
+
+Supported chamber types:
+- Left atrium (LA)
+- Right atrium (RA)
+- Left ventricle (LV)
+- Right ventricle (RV)
+- Septum
+- Apex
+
+## Output Files
+
+When `output_dir` is specified, the pipeline generates:
+
+- `figures/chamber_composition.png` - Cell type composition per chamber
+- `figures/chamber_markers.png` - Heatmap of chamber-specific markers
+- `figures/cross_chamber_correlations.png` - Correlation matrix between chambers
+- Results exported via `ResultsExporter`
+
+## Related Documentation
+
+<Card title="BasicPipeline" icon="play" href="/api/pipelines/basic-pipeline">
+  Basic single-cell analysis pipeline
+</Card>
+
+<Card title="ComprehensivePipeline" icon="list-check" href="/api/pipelines/comprehensive-pipeline">
+  Run all analyses including multi-chamber
+</Card>
+
+<Card title="Visualizer" icon="chart-line" href="/api/utils/visualizer">
+  Visualization utilities for multi-chamber data
+</Card>
+
+<Card title="Multi-Chamber Analysis Guide" icon="heart" href="/guides/multi-chamber">
+  Detailed guide on analyzing multi-chamber heart data
+</Card>

@@ -1,0 +1,438 @@
+---
+title: Frequently Asked Questions
+description: Common questions about HeartMAP
+---
+
+## General Questions
+
+<AccordionGroup>
+  <Accordion title="What is HeartMAP?">
+    HeartMAP (Heart Multi-chamber Analysis Platform) is a specialized bioinformatics package that decodes cellular communication across all four chambers of the human heart. Unlike general single-cell tools, HeartMAP is purpose-built for cardiac biology, offering chamber-specific insights crucial for understanding heart function, disease, and therapeutic opportunities.
+    
+    **Key Features:**
+    - Production-ready Python package
+    - Multiple interfaces: CLI, Python API, and Web interface
+    - Easy installation: `pip install heartmap`
+    - Comprehensive analysis from QC to communication networks
+    - Chamber-specific insights for all four cardiac chambers
+  </Accordion>
+
+  <Accordion title="Who should use HeartMAP?">
+    HeartMAP is designed for:
+    
+    - **Researchers**: Studying cardiac biology, development, or disease
+    - **Clinicians**: Investigating chamber-specific disease mechanisms
+    - **Pharmaceutical Scientists**: Discovering drug targets and assessing safety
+    - **Computational Biologists**: Developing and benchmarking methods
+    - **Educators**: Teaching single-cell analysis and cardiac biology
+    - **Students**: Learning bioinformatics and cardiac biology
+  </Accordion>
+
+  <Accordion title="Is HeartMAP free to use?">
+    Yes! HeartMAP is open source and licensed under Apache 2.0. You can:
+    - Use it freely for research and commercial purposes
+    - Modify and distribute it
+    - Incorporate it into your own projects
+    
+    All we ask is that you cite our paper if you use HeartMAP in your research.
+  </Accordion>
+
+  <Accordion title="What makes HeartMAP different from other single-cell tools?">
+    HeartMAP is specifically designed for cardiac analysis with:
+    
+    1. **Chamber-specific focus**: Analyzes all four cardiac chambers separately
+    2. **Communication networks**: Built-in cell-cell communication analysis
+    3. **Cardiac markers**: Pre-configured with heart-specific cell types and markers
+    4. **Complete pipelines**: End-to-end workflows from QC to publication figures
+    5. **Production-ready**: Fully tested, documented, and deployed on PyPI
+    
+    While general tools like Scanpy provide building blocks, HeartMAP provides a complete solution for cardiac analysis.
+  </Accordion>
+</AccordionGroup>
+
+## Installation & Setup
+
+<AccordionGroup>
+  <Accordion title="What are the system requirements?">
+    **Minimum Requirements:**
+    - Python 3.8 or higher
+    - 8GB RAM (configurable for smaller datasets)
+    - 2GB free disk space
+    - Linux, macOS, or Windows
+    
+    **Recommended:**
+    - Python 3.10
+    - 16GB+ RAM
+    - 5GB free disk space for data and results
+    - SSD for faster I/O
+  </Accordion>
+
+  <Accordion title="How do I install HeartMAP?">
+    Installation is simple with pip:
+    
+    ```bash
+    # Basic installation
+    pip install heartmap
+    
+    # Install with all features
+    pip install heartmap[all]
+    
+    # Verify installation
+    python -c "import heartmap; print('HeartMAP ready!')"
+    ```
+    
+    For development setup:
+    ```bash
+    git clone https://github.com/Tumo505/HeartMap.git
+    cd HeartMap
+    pip install -e .[dev]
+    ```
+  </Accordion>
+
+  <Accordion title="Can I use HeartMAP on a laptop with limited RAM?">
+    Yes! HeartMAP is configurable for systems with as little as 8GB RAM:
+    
+    ```yaml config.yaml
+    data:
+      max_cells_subset: 10000  # Reduce dataset size
+      max_genes_subset: 2000   # Reduce feature count
+      test_mode: false         # Set true for quick testing
+    ```
+    
+    See the [Configuration](/concepts/configuration) guide for memory optimization strategies.
+  </Accordion>
+
+  <Accordion title="Do I need programming experience to use HeartMAP?">
+    It depends on your use case:
+    
+    - **No programming required**: Use the web interface at the Hugging Face Space
+    - **Basic command line**: Use the CLI with simple commands: `heartmap your_data.h5ad`
+    - **Python knowledge helpful**: For custom analyses using the Python API
+    - **Advanced users**: Full access to source code for customization
+  </Accordion>
+</AccordionGroup>
+
+## Data & Analysis
+
+<AccordionGroup>
+  <Accordion title="What data formats does HeartMAP support?">
+    HeartMAP primarily works with **AnnData objects** stored in `.h5ad` format, the standard for single-cell analysis.
+    
+    **Supported conversions:**
+    - Seurat objects (from R)
+    - 10X Genomics outputs
+    - CSV/TSV expression matrices
+    
+    See the [Datasets](/resources/datasets) guide for conversion examples.
+  </Accordion>
+
+  <Accordion title="Can I use HeartMAP with non-human data?">
+    Yes, but with considerations:
+    
+    - HeartMAP was designed and validated on human heart data
+    - Cell type annotations may need adjustment for other species
+    - Communication databases (ligand-receptor pairs) are primarily human-focused
+    - Chamber-specific analysis concepts apply across species
+    
+    For non-human data, you may need to customize cell type markers and interaction databases.
+  </Accordion>
+
+  <Accordion title="What size datasets can HeartMAP handle?">
+    HeartMAP scales to your system:
+    
+    | System RAM | Recommended Cells | Analysis Time |
+    |------------|-------------------|---------------|
+    | 8GB        | 10,000           | 5-10 min      |
+    | 16GB       | 30,000           | 10-20 min     |
+    | 32GB       | 50,000           | 20-30 min     |
+    | 64GB+      | 100,000+         | 30-60 min     |
+    
+    The validated SCP498 dataset contains 287,269 cells across all four chambers.
+  </Accordion>
+
+  <Accordion title="What analyses does HeartMAP perform?">
+    HeartMAP provides four main analysis pipelines:
+    
+    1. **Basic Pipeline** (5-10 min)
+       - Quality control and filtering
+       - Cell type annotation
+       - Basic visualizations
+    
+    2. **Communication Pipeline** (10-15 min)
+       - Cell-cell interaction analysis
+       - Communication hub identification
+       - Pathway enrichment
+    
+    3. **Multi-Chamber Pipeline** (15-20 min)
+       - Chamber-specific markers
+       - Cross-chamber correlations
+       - Comparative analysis
+    
+    4. **Comprehensive Pipeline** (20-30 min)
+       - All analyses combined
+       - Advanced visualizations
+       - Complete reports
+  </Accordion>
+
+  <Accordion title="How do I interpret the results?">
+    HeartMAP generates multiple output types:
+    
+    - **Figures**: UMAP plots, heatmaps, network diagrams
+    - **Tables**: Marker genes, interaction scores, statistics
+    - **Reports**: Markdown summaries of key findings
+    - **Data**: Processed AnnData objects for further analysis
+    
+    All results are saved in the specified output directory with clear naming conventions.
+  </Accordion>
+
+  <Accordion title="Can I run only specific parts of the analysis?">
+    Yes! Use specific pipelines for targeted analyses:
+    
+    ```bash
+    # Just cell typing
+    heartmap data.h5ad --analysis-type annotation
+    
+    # Communication analysis only
+    heartmap data.h5ad --analysis-type communication
+    
+    # Multi-chamber analysis
+    heartmap data.h5ad --analysis-type multi-chamber
+    ```
+    
+    Or use the Python API for fine-grained control:
+    ```python
+    from heartmap.pipelines import BasicPipeline
+    pipeline = BasicPipeline(config)
+    results = pipeline.run('data.h5ad', 'results/')
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Performance & Optimization
+
+<AccordionGroup>
+  <Accordion title="Why is my analysis running slowly?">
+    Several factors affect runtime:
+    
+    1. **Dataset size**: Larger datasets take longer
+    2. **System RAM**: Limited memory causes swapping
+    3. **CPU cores**: More cores = faster parallel processing
+    4. **Storage speed**: SSD vs HDD affects I/O
+    
+    **Optimization strategies:**
+    - Reduce `max_cells_subset` and `max_genes_subset`
+    - Enable `test_mode` for quick validation
+    - Use GPU acceleration if available
+    - Close unnecessary applications
+  </Accordion>
+
+  <Accordion title="Can I use GPU acceleration?">
+    HeartMAP supports GPU acceleration for compatible operations:
+    
+    ```yaml config.yaml
+    model:
+      use_gpu: true
+    ```
+    
+    **Requirements:**
+    - CUDA-compatible GPU
+    - CUDA toolkit installed
+    - GPU-enabled versions of dependencies (PyTorch, etc.)
+    
+    Note: Most analyses are CPU-bound, so GPU acceleration provides modest improvements.
+  </Accordion>
+
+  <Accordion title="How can I optimize memory usage?">
+    Follow these guidelines based on your RAM:
+    
+    **8GB RAM:**
+    ```yaml
+    data:
+      max_cells_subset: 10000
+      max_genes_subset: 2000
+    ```
+    
+    **16GB RAM:**
+    ```yaml
+    data:
+      max_cells_subset: 30000
+      max_genes_subset: 4000
+    ```
+    
+    **32GB+ RAM:**
+    ```yaml
+    data:
+      max_cells_subset: 50000
+      max_genes_subset: 5000
+    ```
+    
+    Also consider:
+    - Close other applications
+    - Use `test_mode` for initial runs
+    - Process chambers separately for very large datasets
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="I'm getting memory errors. What should I do?">
+    Reduce memory usage in your configuration:
+    
+    ```yaml config.yaml
+    data:
+      max_cells_subset: 10000  # Start small
+      max_genes_subset: 2000
+    ```
+    
+    See the [Troubleshooting](/resources/troubleshooting) guide for detailed solutions.
+  </Accordion>
+
+  <Accordion title="HeartMAP can't find my data file. What's wrong?">
+    Common issues:
+    
+    1. **Wrong path**: Use absolute paths or check working directory
+    2. **File permissions**: Ensure read access to the file
+    3. **File format**: Verify it's a valid `.h5ad` file
+    
+    ```bash
+    # Verify file exists and is readable
+    ls -la data/raw/your_file.h5ad
+    
+    # Test loading
+    python -c "import scanpy as sc; adata = sc.read_h5ad('data/raw/your_file.h5ad'); print(adata)"
+    ```
+  </Accordion>
+
+  <Accordion title="The analysis completed but I can't find the results. Where are they?">
+    By default, results are saved in the directory you specified:
+    
+    ```bash
+    # Default output structure
+    results/
+    ├── figures/          # All plots and visualizations
+    ├── tables/           # Marker genes, statistics
+    ├── reports/          # Summary markdown files
+    └── processed_data/   # Annotated AnnData objects
+    ```
+    
+    Check the output path you provided or look in the default `results/` directory.
+  </Accordion>
+
+  <Accordion title="I'm getting import errors. How do I fix them?">
+    Try these solutions:
+    
+    ```bash
+    # Reinstall with all dependencies
+    pip install -e .[all]
+    
+    # Check installation
+    python -c "import heartmap; print(heartmap.__file__)"
+    
+    # Verify environment
+    which python
+    pip list | grep heartmap
+    ```
+    
+    Make sure your virtual environment is activated!
+  </Accordion>
+</AccordionGroup>
+
+## Citation & Publication
+
+<AccordionGroup>
+  <Accordion title="How do I cite HeartMAP?">
+    Please cite our published paper:
+    
+    **Kgabeng, T., Wang, L., Ngwangwa, H., & Pandelani, T. (2025).** HeartMAP: A Multi-Chamber Spatial Framework for Cardiac Cell-Cell Communication. *Computational and Structural Biotechnology Journal*. https://doi.org/10.1016/J.CSBJ.2025.11.015
+    
+    BibTeX entry available in the [Scientific Background](/resources/scientific-background) page.
+  </Accordion>
+
+  <Accordion title="Where was HeartMAP published?">
+    HeartMAP was published in **Computational and Structural Biotechnology Journal** in 2025.
+    
+    - **Journal**: Computational and Structural Biotechnology Journal
+    - **Year**: 2025
+    - **DOI**: [10.1016/j.csbj.2025.11.015](https://doi.org/10.1016/j.csbj.2025.11.015)
+    - **Link**: [Read the paper](https://www.sciencedirect.com/science/article/pii/S2001037025004866)
+  </Accordion>
+
+  <Accordion title="Can I use HeartMAP results in my publication?">
+    Yes! HeartMAP is designed for scientific research. When using HeartMAP:
+    
+    1. **Cite the paper**: Include the HeartMAP citation
+    2. **Describe methods**: Mention HeartMAP version and parameters used
+    3. **Share code**: Consider sharing your analysis scripts for reproducibility
+    4. **Acknowledge**: Optional but appreciated!
+    
+    All results generated by HeartMAP are yours to publish under the Apache 2.0 license.
+  </Accordion>
+</AccordionGroup>
+
+## Contributing & Development
+
+<AccordionGroup>
+  <Accordion title="Can I contribute to HeartMAP?">
+    Yes! We welcome contributions:
+    
+    1. **Report bugs**: Open GitHub issues
+    2. **Suggest features**: Start a discussion
+    3. **Submit code**: Create pull requests
+    4. **Improve docs**: Help others learn HeartMAP
+    
+    See the [Contributing](/resources/contributing) guide for details.
+  </Accordion>
+
+  <Accordion title="How do I report a bug?">
+    Report bugs on GitHub:
+    
+    1. Visit [GitHub Issues](https://github.com/Tumo505/HeartMap/issues)
+    2. Search for existing issues
+    3. Create a new issue with:
+       - Clear description of the problem
+       - Steps to reproduce
+       - Expected vs actual behavior
+       - System info (OS, Python version, HeartMAP version)
+       - Error messages and logs
+  </Accordion>
+
+  <Accordion title="Can I customize HeartMAP for my specific needs?">
+    Absolutely! HeartMAP is designed to be extensible:
+    
+    - **Configuration**: Customize parameters via YAML files
+    - **Python API**: Build custom workflows using HeartMAP components
+    - **Source code**: Modify and extend classes for specialized analyses
+    - **Pipelines**: Create new pipelines by inheriting from `BasePipeline`
+    
+    The modular architecture makes customization straightforward.
+  </Accordion>
+</AccordionGroup>
+
+## Support
+
+<AccordionGroup>
+  <Accordion title="Where can I get help?">
+    Multiple support channels are available:
+    
+    - **Documentation**: Comprehensive guides and API reference
+    - **GitHub Issues**: Bug reports and feature requests
+    - **GitHub Discussions**: Questions and community support
+    - **Email**: 28346416@mylife.unisa.ac.za
+    
+    For bug reports, use GitHub Issues. For questions, use Discussions.
+  </Accordion>
+
+  <Accordion title="Is there a community forum or chat?">
+    Yes! Join the conversation:
+    
+    - **GitHub Discussions**: Ask questions and share knowledge
+    - **Issues**: Track bugs and feature requests
+    
+    We're building an active community of cardiac bioinformatics researchers!
+  </Accordion>
+</AccordionGroup>
+
+<Note>
+  Don't see your question here? Check the [Troubleshooting](/resources/troubleshooting) guide or ask on [GitHub Discussions](https://github.com/Tumo505/HeartMap/discussions).
+</Note>

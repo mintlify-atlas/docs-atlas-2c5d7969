@@ -1,0 +1,431 @@
+---
+title: LigandReceptorDatabase
+description: Load and filter ligand-receptor interaction databases for cell-cell communication analysis
+---
+
+## Overview
+
+`LigandReceptorDatabase` manages ligand-receptor (L-R) interaction databases for analyzing cell-cell communication in single-cell data. It supports multiple curated resources via LIANA and provides a comprehensive fallback cardiac-focused database.
+
+## Class: LigandReceptorDatabase
+
+### Constructor
+
+```python
+from heartmap.data import LigandReceptorDatabase
+
+db = LigandReceptorDatabase(resource='consensus')
+```
+
+<ParamField path="resource" type="str" default="consensus">
+  Database resource to use. Available options:
+  
+  - `consensus` - Curated from multiple sources (recommended)
+  - `cellphonedb` - CellPhoneDB database
+  - `omnipath` - OmniPath database
+  - `connectome` - Ramilowski 2015 dataset
+  - `cellinker` - CellLinker database
+  
+  Requires LIANA installed. Falls back to cardiac database if unavailable.
+</ParamField>
+
+### Attributes
+
+<ResponseField name="resource" type="str">
+  Name of the loaded database resource
+</ResponseField>
+
+<ResponseField name="lr_pairs" type="pd.DataFrame">
+  DataFrame containing ligand-receptor pairs with columns:
+  - `ligand` - Ligand gene symbol
+  - `receptor` - Receptor gene symbol
+  - `confidence` - Confidence score (0-1)
+</ResponseField>
+
+---
+
+## Methods
+
+### get_pairs
+
+Retrieve L-R pairs as a list of tuples, with optional filtering.
+
+```python
+pairs = db.get_pairs(
+    confidence_threshold=0.8,
+    present_in_data=['VEGFA', 'FLT1', 'KDR', 'TGFB1']
+)
+# Output: [('VEGFA', 'FLT1'), ('VEGFA', 'KDR')]
+```
+
+<ParamField path="confidence_threshold" type="float" default="0.0">
+  Minimum confidence score (0-1) to include. Higher values return only well-validated interactions.
+</ParamField>
+
+<ParamField path="present_in_data" type="List[str] | None" default="None">
+  List of gene names present in your dataset. Filters to only return pairs where both ligand and receptor are available.
+  
+  Typically: `adata.var_names.tolist()`
+</ParamField>
+
+<ResponseField name="returns" type="List[Tuple[str, str]]">
+  List of (ligand, receptor) tuples matching the filter criteria
+</ResponseField>
+
+#### Example
+
+```python
+import scanpy as sc
+from heartmap.data import LigandReceptorDatabase
+
+# Load your data
+adata = sc.read_h5ad('heart_data.h5ad')
+available_genes = adata.var_names.tolist()
+
+# Get high-confidence pairs present in data
+db = LigandReceptorDatabase(resource='consensus')
+pairs = db.get_pairs(
+    confidence_threshold=0.85,
+    present_in_data=available_genes
+)
+
+print(f"Found {len(pairs)} L-R pairs in dataset")
+for ligand, receptor in pairs[:5]:
+    print(f"  {ligand} → {receptor}")
+```
+
+---
+
+### get_dataframe
+
+Retrieve L-R pairs as a pandas DataFrame.
+
+```python
+df = db.get_dataframe(confidence_threshold=0.8)
+print(df.head())
+#    ligand receptor  confidence
+# 0   VEGFA     FLT1        0.95
+# 1   VEGFA      KDR        0.98
+```
+
+<ParamField path="confidence_threshold" type="float" default="0.0">
+  Minimum confidence score to include
+</ParamField>
+
+<ResponseField name="returns" type="pd.DataFrame">
+  DataFrame with columns: `ligand`, `receptor`, `confidence`
+</ResponseField>
+
+#### Example
+
+```python
+# Get all high-confidence pairs for export
+df = db.get_dataframe(confidence_threshold=0.9)
+
+# Analyze by pathway
+vegf_pairs = df[df['ligand'].str.startswith('VEGF')]
+print(f"VEGF family interactions: {len(vegf_pairs)}")
+
+# Find receptors for specific ligand
+tgfb1_receptors = df[df['ligand'] == 'TGFB1']['receptor'].tolist()
+print(f"TGFB1 receptors: {tgfb1_receptors}")
+```
+
+---
+
+### save_to_csv
+
+Export the database to a CSV file.
+
+```python
+db.save_to_csv('lr_database_export.csv')
+# ✓ Saved L-R database to lr_database_export.csv
+```
+
+<ParamField path="filepath" type="str" required>
+  Path where CSV file will be written
+</ParamField>
+
+---
+
+### load_database
+
+Load L-R database from LIANA or fallback. Called automatically in `__init__`.
+
+```python
+db = LigandReceptorDatabase(resource='omnipath')
+# ✓ LIANA v0.1.10 loaded successfully
+# ✓ Loaded 2483 L-R pairs from LIANA omnipath
+```
+
+If LIANA is not available:
+
+```python
+# ⚠ LIANA not available - will use fallback database
+# ✓ Loaded 107 L-R pairs from fallback cardiac database
+```
+
+---
+
+## Convenience Function: get_ligand_receptor_pairs
+
+Quickly retrieve L-R pairs filtered to genes in your AnnData object.
+
+```python
+from heartmap.data import get_ligand_receptor_pairs
+import scanpy as sc
+
+adata = sc.read_h5ad('heart_data.h5ad')
+
+pairs = get_ligand_receptor_pairs(
+    adata,
+    resource='consensus',
+    confidence_threshold=0.7
+)
+# ✓ Loaded 2134 L-R pairs from LIANA consensus
+# ✓ Found 487 L-R pairs present in dataset (from 2134 total)
+```
+
+<ParamField path="adata" type="AnnData" required>
+  Annotated data object with gene names in `adata.var_names`
+</ParamField>
+
+<ParamField path="resource" type="str" default="consensus">
+  Database resource to use (same options as LigandReceptorDatabase)
+</ParamField>
+
+<ParamField path="confidence_threshold" type="float" default="0.7">
+  Minimum confidence score (0-1)
+</ParamField>
+
+<ResponseField name="returns" type="List[Tuple[str, str]]">
+  List of (ligand, receptor) tuples present in the dataset
+</ResponseField>
+
+#### Example
+
+```python
+from heartmap.data import get_ligand_receptor_pairs
+import scanpy as sc
+
+adata = sc.read_h5ad('processed_data.h5ad')
+
+# Quick retrieval for analysis
+pairs = get_ligand_receptor_pairs(
+    adata,
+    resource='cellphonedb',
+    confidence_threshold=0.8
+)
+
+# Use in downstream analysis
+for ligand, receptor in pairs:
+    if ligand in adata.var_names and receptor in adata.var_names:
+        print(f"Analyzing {ligand} → {receptor}")
+```
+
+---
+
+## Available Database Resources
+
+### LIANA Resources (when installed)
+
+| Resource | Description | Typical Size | Best For |
+|----------|-------------|--------------|----------|
+| `consensus` | Curated from multiple sources | ~2000+ pairs | General use (recommended) |
+| `cellphonedb` | CellPhoneDB v4.0 | ~1600 pairs | Well-validated interactions |
+| `omnipath` | OmniPath database | ~2400 pairs | Comprehensive coverage |
+| `connectome` | Ramilowski 2015 | ~2500 pairs | Literature-based |
+| `cellinker` | CellLinker database | ~1800 pairs | Specialized interactions |
+
+### Fallback Cardiac Database
+
+When LIANA is unavailable, HeartMAP provides a curated cardiac-focused database with 107 high-confidence interactions including:
+
+**Pathways included:**
+- Angiogenesis & Vascular (VEGF, ANGPT, PGF)
+- TGF-beta superfamily (TGFB, BMP, INHBA)
+- FGF signaling (FGF1/2/7/9/10)
+- PDGF signaling (PDGFA/B/C/D)
+- Inflammatory cytokines (IL6, IL1B, TNF, IFNG)
+- Chemokines (CXCL12, CCL2/5, CXCL8)
+- Growth factors (EGF, IGF, HGF, NGF)
+- Notch signaling (DLL, JAG)
+- Wnt signaling (WNT3A/5A/7A)
+- Extracellular matrix (COL, FN1, LAMB1)
+- Cardiac specific (NRG1, EDN1, NPPA/B)
+- Semaphorins, Ephrins, Adhesion molecules
+
+```python
+# Accessing fallback database
+db = LigandReceptorDatabase()  # Uses fallback if LIANA unavailable
+print(f"Loaded {len(db.lr_pairs)} pairs")
+
+# View cardiac-specific pairs
+cardiac_df = db.get_dataframe()
+vegf_pairs = cardiac_df[cardiac_df['ligand'].str.startswith('VEGF')]
+print(vegf_pairs)
+#    ligand receptor  confidence
+# 0   VEGFA     FLT1        0.95
+# 1   VEGFA      KDR        0.98
+# 2   VEGFA     NRP1        0.85
+# 3   VEGFB     FLT1        0.90
+# 4   VEGFC     FLT4        0.95
+```
+
+---
+
+## Installation
+
+### With LIANA Support (Recommended)
+
+```bash
+pip install liana
+pip install heartmap
+```
+
+### Without LIANA (Fallback Database Only)
+
+```bash
+pip install heartmap
+```
+
+The fallback database provides comprehensive cardiac coverage without external dependencies.
+
+---
+
+## Complete Example
+
+```python
+import scanpy as sc
+from heartmap.data import LigandReceptorDatabase, get_ligand_receptor_pairs
+
+# Load processed single-cell data
+adata = sc.read_h5ad('heart_processed.h5ad')
+print(f"Dataset: {adata.n_obs} cells × {adata.n_vars} genes")
+
+# Method 1: Using the convenience function
+pairs = get_ligand_receptor_pairs(
+    adata,
+    resource='consensus',
+    confidence_threshold=0.85
+)
+print(f"Found {len(pairs)} high-confidence pairs")
+
+# Method 2: Using the class directly
+db = LigandReceptorDatabase(resource='consensus')
+print(f"Total database size: {len(db.lr_pairs)} pairs")
+
+# Filter by confidence
+high_conf_pairs = db.get_pairs(
+    confidence_threshold=0.9,
+    present_in_data=adata.var_names.tolist()
+)
+print(f"High confidence pairs in data: {len(high_conf_pairs)}")
+
+# Analyze specific pathway
+df = db.get_dataframe()
+vegf_signaling = df[df['ligand'].str.contains('VEGF')]
+print(f"\nVEGF pathway interactions:")
+print(vegf_signaling)
+
+# Export for external analysis
+db.save_to_csv('cardiac_lr_database.csv')
+
+# Use pairs in communication analysis
+for ligand, receptor in pairs[:10]:
+    ligand_exp = adata[:, ligand].X.mean()
+    receptor_exp = adata[:, receptor].X.mean()
+    print(f"{ligand} → {receptor}: L={ligand_exp:.2f}, R={receptor_exp:.2f}")
+```
+
+---
+
+## Confidence Scores
+
+Confidence scores (0-1) indicate interaction validation level:
+
+| Score Range | Interpretation | Recommendation |
+|-------------|----------------|----------------|
+| 0.90 - 1.00 | Highly validated | Use for critical analyses |
+| 0.75 - 0.89 | Well-supported | Standard threshold |
+| 0.50 - 0.74 | Moderate evidence | Exploratory analysis |
+| 0.00 - 0.49 | Limited evidence | Use with caution |
+
+```python
+# Conservative analysis (high confidence only)
+conservative_pairs = db.get_pairs(confidence_threshold=0.9)
+
+# Standard analysis
+standard_pairs = db.get_pairs(confidence_threshold=0.75)
+
+# Exploratory analysis (include more pairs)
+exploratory_pairs = db.get_pairs(confidence_threshold=0.5)
+```
+
+---
+
+## Filtering by Gene Availability
+
+```python
+# Get genes detected in your data
+expressed_genes = adata.var_names[adata.var['n_cells'] > 10].tolist()
+
+# Filter to expressed pairs only
+expressed_pairs = db.get_pairs(
+    confidence_threshold=0.7,
+    present_in_data=expressed_genes
+)
+
+print(f"Pairs with both genes expressed: {len(expressed_pairs)}")
+```
+
+---
+
+## Error Handling
+
+```python
+try:
+    db = LigandReceptorDatabase(resource='invalid_resource')
+except Exception as e:
+    print(f"Failed to load database: {e}")
+    # Falls back to cardiac database automatically
+```
+
+Common warnings:
+
+```
+⚠ LIANA not available - will use fallback database
+✓ Loaded 107 L-R pairs from fallback cardiac database
+```
+
+---
+
+## Integration with HeartMAP
+
+```python
+from heartmap.data import DataProcessor, get_ligand_receptor_pairs
+from heartmap.config import Config
+
+# Process data
+config = Config()
+processor = DataProcessor(config)
+adata = processor.process_from_raw('heart_data.h5ad')
+
+# Get L-R pairs for communication analysis
+pairs = get_ligand_receptor_pairs(
+    adata,
+    resource='consensus',
+    confidence_threshold=0.8
+)
+
+# Use in HeartMAP analysis pipeline
+print(f"Ready for communication analysis with {len(pairs)} interactions")
+```
+
+---
+
+## See Also
+
+- [DataProcessor](/api/data/data-processor) - Data preprocessing pipeline
+- [LIANA Documentation](https://liana-py.readthedocs.io/) - Ligand-receptor analysis framework
+- [CellPhoneDB](https://www.cellphonedb.org/) - Original database source

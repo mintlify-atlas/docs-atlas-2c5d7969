@@ -1,0 +1,350 @@
+---
+title: Installation
+description: Install HeartMAP and set up your environment for cardiac single-cell analysis
+---
+
+# Installation Guide
+
+HeartMAP is available on PyPI and can be installed with a single command. This guide covers different installation methods and system requirements.
+
+## System Requirements
+
+Before installing HeartMAP, ensure your system meets these requirements:
+
+### Minimum Requirements
+
+- **Python**: 3.8 or higher (tested on Python 3.8-3.11)
+- **Memory**: 8GB+ RAM (16GB recommended for larger datasets)
+- **Storage**: 2GB+ for package and results
+- **Operating System**: Linux, macOS, or Windows
+
+### Python Version Support
+
+<CardGroup cols={4}>
+  <Card title="Python 3.8" icon="check">
+    Supported
+  </Card>
+  <Card title="Python 3.9" icon="check">
+    Supported
+  </Card>
+  <Card title="Python 3.10" icon="check">
+    Recommended
+  </Card>
+  <Card title="Python 3.11" icon="check">
+    Supported
+  </Card>
+</CardGroup>
+
+<Warning>
+  Python 3.7 and earlier are not supported. Python 3.12+ may work but has not been extensively tested.
+</Warning>
+
+## Quick Installation
+
+The fastest way to get started with HeartMAP:
+
+<CodeGroup>
+```bash pip
+pip install heartmap
+```
+
+```bash pip (with all features)
+pip install heartmap[all]
+```
+
+```bash conda environment
+conda create -n heartmap python=3.10
+conda activate heartmap
+pip install heartmap[all]
+```
+</CodeGroup>
+
+## Installation Options
+
+HeartMAP offers different installation options depending on which features you need.
+
+### Basic Installation
+
+Installs core dependencies for basic analysis:
+
+```bash
+pip install heartmap
+```
+
+**Core dependencies:**
+- `scanpy>=1.9.0` - Single-cell analysis
+- `pandas>=1.5.0` - Data manipulation
+- `numpy>=1.21.0` - Numerical computing
+- `scipy>=1.9.0` - Scientific computing
+- `scikit-learn>=1.1.0` - Machine learning
+- `matplotlib>=3.5.0` - Visualization
+- `seaborn>=0.11.0` - Statistical visualization
+- `anndata>=0.8.0` - Annotated data structures
+- `plotly>=5.0.0` - Interactive plots
+- `networkx>=2.8.0` - Network analysis
+- `python-igraph>=0.10.0` - Graph algorithms
+- `leidenalg>=0.8.0` - Clustering
+- `pyyaml>=6.0` - Configuration files
+
+### Communication Analysis
+
+For advanced cell-cell communication analysis:
+
+```bash
+pip install heartmap[communication]
+```
+
+**Additional dependencies:**
+- `liana>=0.1.0` - Ligand-receptor analysis
+- `cellphonedb>=3.0.0` - Cell communication database
+- `omnipath>=1.0.0` - Signaling database
+
+### API Features
+
+For REST API and web service deployment:
+
+```bash
+pip install heartmap[api]
+```
+
+**Additional dependencies:**
+- `fastapi>=0.100.0` - Web framework
+- `uvicorn>=0.23.0` - ASGI server
+- `pydantic>=2.0.0` - Data validation
+
+### Development Installation
+
+For contributors and developers:
+
+```bash
+pip install heartmap[dev]
+```
+
+**Additional dependencies:**
+- `pytest>=7.0.0` - Testing framework
+- `pytest-cov>=4.0.0` - Code coverage
+- `black>=23.0.0` - Code formatting
+- `flake8>=6.0.0` - Linting
+- `mypy>=1.0.0` - Type checking
+- `types-PyYAML>=6.0.0` - Type stubs
+- `jupyter>=1.0.0` - Notebooks
+- `notebook>=6.0.0` - Jupyter interface
+
+### Complete Installation
+
+Installs all features (recommended for most users):
+
+```bash
+pip install heartmap[all]
+```
+
+This includes all dependencies from communication, api, and dev extras.
+
+## Installation from Source
+
+For the latest development version or to contribute:
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/Tumo505/HeartMap.git
+    cd HeartMap
+    ```
+  </Step>
+  
+  <Step title="Create virtual environment (optional but recommended)">
+    <CodeGroup>
+    ```bash venv
+    python -m venv heartmap_env
+    source heartmap_env/bin/activate  # Linux/Mac
+    # OR
+    heartmap_env\Scripts\activate  # Windows
+    ```
+    
+    ```bash conda
+    conda create -n heartmap python=3.10
+    conda activate heartmap
+    ```
+    </CodeGroup>
+  </Step>
+  
+  <Step title="Install in development mode">
+    ```bash
+    pip install -e .[all]
+    ```
+    
+    The `-e` flag installs in editable mode, so changes to the source code are immediately reflected.
+  </Step>
+</Steps>
+
+## Verify Installation
+
+After installation, verify that HeartMAP is working correctly:
+
+<Steps>
+  <Step title="Check package import">
+    ```bash
+    python -c "import heartmap; print(heartmap.__version__)"
+    ```
+    
+    Expected output:
+    ```
+    2.0.2
+    ```
+  </Step>
+  
+  <Step title="Check CLI availability">
+    ```bash
+    heartmap --help
+    ```
+    
+    You should see the HeartMAP command-line interface help message.
+  </Step>
+  
+  <Step title="Verify core dependencies">
+    ```python
+    import heartmap
+    from heartmap import Config
+    from heartmap.pipelines import BasicPipeline, ComprehensivePipeline
+    
+    print("✅ HeartMAP ready!")
+    ```
+  </Step>
+</Steps>
+
+## Memory Configuration
+
+HeartMAP can be configured to work with different memory constraints:
+
+| System RAM | Recommended Settings | Use Case |
+|------------|---------------------|----------|
+| 8GB | `max_cells_subset: 10000`<br/>`max_genes_subset: 2000` | Laptop/Desktop |
+| 16GB | `max_cells_subset: 30000`<br/>`max_genes_subset: 4000` | Workstation |
+| 32GB | `max_cells_subset: 50000`<br/>`max_genes_subset: 5000` | Server |
+| 64GB+ | `max_cells_subset: 100000+`<br/>`max_genes_subset: 10000+` | HPC/Cloud |
+
+<Info>
+  You can configure these settings in a `config.yaml` file or programmatically through the `Config` class.
+</Info>
+
+## Troubleshooting
+
+### Common Installation Issues
+
+#### ImportError: No module named 'heartmap'
+
+**Solution**: Make sure you've activated the correct virtual environment and installed HeartMAP:
+
+```bash
+pip install heartmap
+# Verify installation
+pip list | grep heartmap
+```
+
+#### Memory errors during installation
+
+**Solution**: Install dependencies one at a time or increase pip's memory limit:
+
+```bash
+pip install --no-cache-dir heartmap[all]
+```
+
+#### Compilation errors with igraph or leidenalg
+
+**Solution**: These packages require compilation. Install build tools:
+
+<CodeGroup>
+```bash Ubuntu/Debian
+sudo apt-get install build-essential python3-dev
+pip install heartmap[all]
+```
+
+```bash macOS
+brew install cmake
+pip install heartmap[all]
+```
+
+```bash Windows
+# Install Microsoft C++ Build Tools first
+# Then install HeartMAP
+pip install heartmap[all]
+```
+</CodeGroup>
+
+#### Conflicts with existing packages
+
+**Solution**: Create a fresh virtual environment:
+
+```bash
+python -m venv heartmap_clean
+source heartmap_clean/bin/activate
+pip install heartmap[all]
+```
+
+### Checking Installation Status
+
+Use this script to verify all components:
+
+```python verify_installation.py
+import sys
+
+try:
+    import heartmap
+    print(f"✅ HeartMAP version: {heartmap.__version__}")
+except ImportError:
+    print("❌ HeartMAP not found")
+    sys.exit(1)
+
+try:
+    from heartmap import Config
+    from heartmap.pipelines import BasicPipeline, ComprehensivePipeline
+    print("✅ Core modules imported successfully")
+except ImportError as e:
+    print(f"❌ Import error: {e}")
+    sys.exit(1)
+
+try:
+    import scanpy as sc
+    import pandas as pd
+    import numpy as np
+    print("✅ Core dependencies available")
+except ImportError as e:
+    print(f"⚠️ Some dependencies missing: {e}")
+
+print("\n🎉 HeartMAP installation verified!")
+```
+
+Run with:
+```bash
+python verify_installation.py
+```
+
+## Next Steps
+
+Now that HeartMAP is installed, you're ready to start analyzing cardiac data:
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Run your first analysis in minutes
+  </Card>
+  
+  <Card title="Configuration" icon="gear" href="/configuration">
+    Learn how to configure HeartMAP for your system
+  </Card>
+  
+  <Card title="Tutorials" icon="book" href="/tutorials">
+    Explore step-by-step guides
+  </Card>
+  
+  <Card title="API Reference" icon="code" href="/api-reference">
+    Dive into the Python API
+  </Card>
+</CardGroup>
+
+## Getting Help
+
+If you encounter issues during installation:
+
+- Check the [GitHub Issues](https://github.com/Tumo505/HeartMap/issues) for similar problems
+- Join the [GitHub Discussions](https://github.com/Tumo505/HeartMap/discussions) for community support
+- Contact the team at: 28346416@mylife.unisa.ac.za
